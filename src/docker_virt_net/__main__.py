@@ -18,8 +18,6 @@ def main():
 
     logger.addHandler(ch)
 
-    logger.info("Logger set up :P")
-
     config_parser.parse_config(args.net_definition)
 
 if __name__ == "__main__":
