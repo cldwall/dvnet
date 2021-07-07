@@ -70,6 +70,9 @@ def parse_config(conf, schema = "net.schema"):
         log.info(f"Correctly loaded {conf}")
         validate_subnet_addresses(net_conf)
         log.debug(f"IPv4 addresses specified on {conf} seem good to go")
+        net = build_graph(net_conf)
+        log.info(f"Built a graph representing the network defined in {conf}")
+        return net
     except ConfError as err:
         log.critical(err.cause)
         sys.exit(-1)
@@ -106,6 +109,7 @@ def validate_subnet_addresses(conf):
         conf (dictionary): The network configuration whose addresses are to
             be validated.
     """
+    previous_subnets = []
     for subnet in conf['subnets'].values():
         try:
             subnet_addr = subnet['address']
@@ -119,6 +123,9 @@ def validate_subnet_addresses(conf):
             if not 1 <= int(mask) <= 32:
                 raise ValueError
             check_private_ip(subnet_addr)
+            if subnet_addr in previous_subnets:
+                raise ConfError(f"CIDR block {subnet_addr} has been assigned more than once")
+            previous_subnets.append(subnet_addr)
         except ValueError:
             raise ConfError(f"IPv4 subnet range in CIDR notation {subnet_addr} is not valid.")
 
@@ -141,3 +148,34 @@ def check_private_ip(subnet):
 
     log.debug(f"CIDR block {subnet} does not belong to a private block. This could interfere with outbound connectivity...")
     return False
+
+def build_graph(conf):
+    """Builds a NetworkX graph representing the network specified in the configuration file.
+
+        Args:
+            conf (dictionary): The network configuration loaded from a user-specified file.
+
+        Returns:
+            networkx.Graph: A graph representing the entire network.
+    """
+    net = networkx.Graph()
+    for subnet, content in conf['subnets'].items():
+        if net.has_node(subnet + "_brd"):
+            raise ConfError(f"Subnet {subnet} has been defined more than once")
+        net.add_node(subnet + "_brd", type = "bridge", subnet = content['address'])
+        for host in content['hosts']:
+            if net.has_node(host):
+                raise ConfError(f"Host {host} has been added more than once")
+            net.add_node(host, type = "node")
+            net.add_edge(host, subnet + "_brd")
+
+    for router, router_conf in conf['routers'].items():
+        if net.has_node(router):
+            raise ConfError(f"Router {router} has been added more than once")
+        net.add_node(router, type = "router", fw_rules = router_conf['fw_rules'])
+        for subnet in router_conf['subnets']:
+            if not net.has_node(subnet + "_brd"):
+                raise ConfError(f"Subnet {subnet} has not been defined and router {router} connects to it")
+            net.add_edge(router, subnet + "_brd")
+
+    return net
