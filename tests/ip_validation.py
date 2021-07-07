@@ -7,9 +7,10 @@ import sys
 sys.path.insert(0, 'src/')
 
 from docker_virt_net.config_parser import validate_subnet_addresses
+from docker_virt_net.config_parser import check_private_ip
 from docker_virt_net.config_parser import ConfError
 
-class TestColours(unittest.TestCase):
+class TestIPValidation(unittest.TestCase):
     def test_bad_ip(self):
         self.assertRaises(ConfError, validate_subnet_addresses, {"subnets": {"A": {"address": "10.0.-1.0/24"}}})
 
@@ -26,6 +27,16 @@ class TestColours(unittest.TestCase):
             self.assertEqual(True, False)
         else:
             self.assertEqual(True, True)
+
+    def test_private_block(self):
+        self.assertEqual(check_private_ip("10.0.1.0/24"), True)
+        self.assertEqual(check_private_ip("192.168.5.0/24"), True)
+        self.assertEqual(check_private_ip("172.30.5.1/24"), True)
+
+    def test_public_block(self):
+        self.assertEqual(check_private_ip("193.0.1.0/24"), False)
+        self.assertEqual(check_private_ip("1.2.3.4/16"), False)
+        self.assertEqual(check_private_ip("8.8.8.8/8"), False)
 
 if __name__ == '__main__':
     unittest.main()

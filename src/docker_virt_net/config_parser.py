@@ -2,7 +2,53 @@ import json, jsonschema, pathlib, logging, sys, networkx
 
 log = logging.getLogger(__name__)
 
+def _addr_to_binary(addr):
+    """Returns an integer equivalent for an IPv4 address.
+
+        Args:
+            addr (str): An IPv4 address in A.B.C.D format.
+
+        Returns:
+            int: The equivalent representation of `addr`.
+    """
+    bin_ip, loop_count = 0, 0
+    for x in reversed(addr.split('/')[0].split('.')):
+        bin_ip |= int(x) << loop_count * 8
+        loop_count += 1
+    return bin_ip
+
+def _get_net_addr(subn):
+    """Returns the network address for an IPv4 CIDR block.
+
+        Args:
+            subn (str): An IPv4 CIDR block in A.B.C.D/X format.
+
+        Returns:
+            int: The CIDR's block network address.
+    """
+    mask = 0
+    for i in range(int(subn.split('/')[1])):
+        mask |= 0x1 << (31 - i)
+    return _addr_to_binary(subn) & mask
+
+def _get_brd_addr(subn):
+    """Returns the broadcast address for an IPv4 CIDR block.
+
+        Args:
+            subn (str): An IPv4 CIDR block in A.B.C.D/X format.
+
+        Returns:
+            int: The CIDR's block broadcast address.
+    """
+    mask = 0
+    for i in range(int(subn.split('/')[1])):
+        mask |= 0x1 << (31 - i)
+    return _get_net_addr(subn) | ~mask
+
+private_ranges = {subn: (_get_net_addr(subn), _get_brd_addr(subn)) for subn in ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"]}
+
 class ConfError(Exception):
+    """Exception representing an error in the network configuration's contents."""
     def __init__(self, cause):
         self.cause = cause
 
@@ -21,8 +67,9 @@ def parse_config(conf, schema = "net.schema"):
     """
     try:
         net_conf = load_conf(conf, schema)
-        log.info(f"Correctly loaded {conf}. Time to check it's okay...")
+        log.info(f"Correctly loaded {conf}")
         validate_subnet_addresses(net_conf)
+        log.debug(f"IPv4 addresses specified on {conf} seem good to go")
     except ConfError as err:
         log.critical(err.cause)
         sys.exit(-1)
@@ -61,7 +108,8 @@ def validate_subnet_addresses(conf):
     """
     for subnet in conf['subnets'].values():
         try:
-            ip, mask = subnet['address'].split('/')
+            subnet_addr = subnet['address']
+            ip, mask = subnet_addr.split('/')
             if len(ip.split('.')) != 4:
                 raise ValueError
             for oct in ip.split('.'):
@@ -70,5 +118,26 @@ def validate_subnet_addresses(conf):
                     raise ValueError
             if not 1 <= int(mask) <= 32:
                 raise ValueError
+            check_private_ip(subnet_addr)
         except ValueError:
-            raise ConfError(f"IPv4 subnet range in CIDR notation {subnet['address']} is not valid.")
+            raise ConfError(f"IPv4 subnet range in CIDR notation {subnet_addr} is not valid.")
+
+def check_private_ip(subnet):
+    """Checks whether a subnet block is contained within a private address range as per RFC 1918.
+
+        Args:
+            subnet (string): The CIDR block to check.
+
+        Returns:
+            bool: True if the subnet block belongs to a private range. False otherwise.
+    """
+    brd = _get_brd_addr(subnet)
+    net = _get_net_addr(subnet)
+
+    for range, limits in private_ranges.items():
+        if net >= limits[0] and brd <= limits[1]:
+            log.debug(f"CIDR block {subnet} belongs to private IPv4 range {range}")
+            return True
+
+    log.debug(f"CIDR block {subnet} does not belong to a private block. This could interfere with outbound connectivity...")
+    return False
