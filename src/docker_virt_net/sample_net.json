@@ -1,0 +1,16 @@
+{
+    "name": "Sample Net",
+    "subnets": {
+        "A": {
+            "address": "10.0.0.0/24",
+            "hosts": ["A-1", "A-2"]
+        },
+        "B": {
+            "address": "10.1.1.0/24",
+            "hosts": ["B-1", "B-2"]
+        }
+    },
+    "routers": {
+        "R": ["A", "B"]
+    }
+}

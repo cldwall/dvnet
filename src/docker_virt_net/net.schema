@@ -1,0 +1,42 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "file:docker_virt_net/net.schema",
+    "title": "NetSchema",
+    "description": "Rules virtual network definitions should adhere to",
+    "type": "object",
+    "properties": {
+        "name": {
+            "description": "The network's name. Used only for displaying purposes.",
+            "type": "string"
+        },
+        "subnets": {
+            "type": "object",
+            "minProperties": 1,
+            "patternProperties": {
+                "^.+$": {
+                    "type": "object",
+                    "properties": {
+                        "address": {"type": "string"},
+                        "hosts": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "uniqueItems": true
+                        }
+                    },
+                    "required": ["address", "hosts"]
+                }
+            }
+        },
+        "routers": {
+            "type": "object",
+            "patternProperties": {
+                "^.+$": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "uniqueItems": true
+                }
+            }
+        }
+    },
+    "required": ["name", "subnets", "routers"]
+}
