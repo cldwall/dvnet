@@ -31,9 +31,54 @@
             "type": "object",
             "patternProperties": {
                 "^.+$": {
-                    "type": "array",
-                    "items": {"type": "string"},
-                    "uniqueItems": true
+                    "type": "object",
+                    "properties": {
+                        "fw_rules": {
+                            "type": "object",
+                            "properties": {
+                                "POLICY": {
+                                    "type": "string",
+                                    "enum": ["ACCEPT", "DROP"]
+                                },
+                                "ACCEPT": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "array",
+                                        "items": [
+                                            {"type": "string"},
+                                            {"type": "string"},
+                                            {"type": "boolean"}
+                                        ],
+                                        "additionalItems": false
+                                    },
+                                    "uniqueItems": true
+                                },
+                                "DROP": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "array",
+                                        "items": [
+                                            {"type": "string"},
+                                            {"type": "string"},
+                                            {"type": "boolean"}
+                                        ],
+                                        "additionalItems": false
+                                    },
+                                    "uniqueItems": true
+                                }
+                            },
+                            "oneOf": [
+                                {"required": ["POLICY", "ACCEPT", "DROP"]},
+                                {"maxProperties": 0}
+                            ]
+                        },
+                        "subnets": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "uniqueItems": true
+                        }
+                    },
+                    "required": ["fw_rules", "subnets"]
                 }
             }
         }
