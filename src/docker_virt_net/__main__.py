@@ -1,6 +1,7 @@
 import logging, argparse
 from . import coloured_log_formatter
 from . import config_parser
+from . import network_instantiation
 
 def main():
     # Parsing input arguments
@@ -18,7 +19,9 @@ def main():
 
     logger.addHandler(ch)
 
-    config_parser.parse_config(args.net_definition)
+    net_conf, net_graph = config_parser.parse_config(args.net_definition)
+
+    network_instantiation(net_conf, net_graph)
 
 if __name__ == "__main__":
     main()

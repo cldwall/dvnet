@@ -13,9 +13,14 @@ class veth:
         )
 
     @staticmethod
-    def activate(veth):
+    def activate(veth, netns = None):
+        if netns:
+            args = ['ip', '-n', netns, 'link', 'set', veth, 'up']
+        else:
+            args = ['ip', 'link', 'set', veth, 'up']
+
         _execute(
-            ['ip', 'link', 'set', veth, 'up'],
+            args,
             f"Error activating veth {veth}"
         )
 
