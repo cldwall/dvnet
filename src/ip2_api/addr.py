@@ -1,4 +1,4 @@
-from .call_factory import _call_factory
+from .cmds import _execute
 
 def assign(iface, cidr_block, netns = None):
     if netns:
@@ -12,7 +12,7 @@ def assign(iface, cidr_block, netns = None):
             'brd', '+', 'dev', iface
         ]
 
-    _call_factory(
+    _execute(
         args,
         f"Error assigning {cidr_block} to {iface} on netns {netns if netns else 'root'}"
     )
@@ -23,7 +23,7 @@ def reset(iface, netns = None):
     else:
         args = ['ip', 'addr', 'flush', 'dev', iface, 'scope', 'global']
 
-    _call_factory(
+    _execute(
         args,
         f"Error flushing interface {iface} on netns {netns if netns else 'root'}"
     )

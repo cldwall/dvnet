@@ -1,4 +1,4 @@
-from .call_factory import _call_factory
+from .cmds import _execute
 
 def assign(dest, gw, netns = None):
     if netns:
@@ -6,7 +6,7 @@ def assign(dest, gw, netns = None):
     else:
         args = ['ip', 'route', 'replace', dest, 'via', gw]
 
-    _call_factory(
+    _execute(
         args,
         f"Error adding route to {dest} via {gw} on host {netns if netns else 'root'}"
     )
@@ -17,7 +17,7 @@ def remove(dest, gw, netns = None):
     else:
         args = ['ip', 'route', 'del', dest, 'via', gw]
 
-    _call_factory(
+    _execute(
         args,
         f"Error deleting route to {dest} via {gw} on host {netns if netns else 'root'}"
     )

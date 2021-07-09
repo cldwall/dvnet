@@ -1,35 +1,64 @@
-import subprocess
-from .exceptions import UtilError
+from .cmds import _execute, _get_value
+
+prev_bridge_nf_call = None
+prev_ipv4_forward = None
 
 def alter_ipv4_forwarding(disable = False):
-    try:
-        subprocess.run(
-            [
-                'sysctl', '-w',
-                f'net.ipv4.ip_forward={0 if disable else 1}'
-            ],
-            check = True
+    global prev_ipv4_forward
+    if not prev_ipv4_forward:
+        prev_ipv4_forward = int(
+            _get_value(
+                ['sysctl', '-n', 'net.ipv4.ip_forward'],
+                "Error retrieving ipv4.ip_forward's value"
+            )
         )
-    except subprocess.CalledProcessError:
-        raise UtilError(f"Error writing to net.ipv4.ip_forward")
+
+    _execute(
+        [
+            'sysctl', '-w',
+            f'net.ipv4.ip_forward={0 if disable else 1}'
+        ],
+        "Error writing to net.ipv4.ip_forward"
+    )
+
+def restore_ipv4_forwarding():
+    _execute(
+        [
+            'sysctl', '-w',
+            f'net.ipv4.ip_forward={prev_ipv4_forward}'
+        ],
+        "Error restoring ipv4.ip_forward's value"
+    )
 
 def alter_brd_iptables_calls(disable = True):
-    try:
-        subprocess.run(
-            [
-                'sysctl', '-w',
-                f'net.bridge.bridge-nf-call-iptables={0 if disable else 1}'
-            ],
-            check = True
+    global prev_bridge_nf_call
+    if not prev_bridge_nf_call:
+        prev_bridge_nf_call = int(
+            _get_value(
+                ['sysctl', '-n', 'net.bridge.bridge-nf-call-iptables'],
+                "Error retrieving bridge-nf-call-iptables' value. The br_netfilter module might not be loaded!"
+            )
         )
-    except subprocess.CalledProcessError:
-        raise UtilError(f"Error writing to net.bridge.bridge-nf-call-iptables")
+
+    _execute(
+        [
+            'sysctl', '-w',
+            f'net.bridge.bridge-nf-call-iptables={0 if disable else 1}'
+        ],
+        "Error writing to net.bridge.bridge-nf-call-iptables. The br_netfilter module might not be loaded!"
+    )
+
+def restore_brd_iptables_calls():
+    _execute(
+        [
+            'sysctl', '-w',
+            f'net.bridge.bridge-nf-call-iptables={prev_bridge_nf_call}'
+        ],
+        "Error restoring net.bridge.bridge-nf-call-iptables's value. The br_netfilter module might not be loaded!"
+    )
 
 def create_netns_dir():
-    try:
-        subprocess.run(
-            ['mkdir', '-p', '/var/run/netns'],
-            check = True
-        )
-    except subprocess.CalledProcessError:
-        raise UtilError(f"Error writing creating the /var/run/netns directory")
+    _execute(
+        ['mkdir', '-p', '/var/run/netns'],
+        "Error creating the /var/run/netns directory"
+    )

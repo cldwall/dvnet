@@ -1,9 +1,9 @@
-from .call_factory import _call_factory
+from .cmds import _execute
 
 class veth:
     @staticmethod
     def create(x, y):
-        _call_factory(
+        _execute(
             [
                 'ip', 'link', 'add', x,
                 'type', 'veth', 'peer',
@@ -14,14 +14,14 @@ class veth:
 
     @staticmethod
     def activate(veth):
-        _call_factory(
+        _execute(
             ['ip', 'link', 'set', veth, 'up'],
             f"Error activating veth {veth}"
         )
 
     @staticmethod
     def connect(node, veth, host = True):
-        _call_factory(
+        _execute(
             [
                 'ip', 'link', 'set', veth,
                 'netns' if host else 'master',
@@ -37,7 +37,7 @@ class veth:
         else:
             args = ['ip', 'link', 'del', veth, 'type', 'veth']
 
-        _call_factory(
+        _execute(
             args,
             f"Error removing veth {veth} on netns {netns if netns else 'root'}"
         )
@@ -45,7 +45,7 @@ class veth:
 class bridge:
     @staticmethod
     def create(name):
-        _call_factory(
+        _execute(
             [
                 'ip', 'link', 'add', 'name',
                 name, 'type', 'bridge'
@@ -55,14 +55,14 @@ class bridge:
 
     @staticmethod
     def activate(name):
-        _call_factory(
+        _execute(
             ['ip', 'link', 'set', name, 'up'],
             f"Error activating bridge {name}"
         )
 
     @staticmethod
     def remove(name):
-        _call_factory(
+        _execute(
             ['ip', 'link', 'del', name],
             f"Error deleting bridge {name}"
         )
