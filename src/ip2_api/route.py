@@ -1,6 +1,11 @@
+import logging
+
 from .cmds import _execute
 
+log = logging.getLogger(__name__)
+
 def assign(dest, gw, netns = None):
+    log.debug(f"Assigning route to {dest} via {gw} on netns {netns if netns else 'root'}")
     if netns:
         args = ['ip', '-n', netns, 'route', 'replace', dest, 'via', gw]
     else:
@@ -12,6 +17,7 @@ def assign(dest, gw, netns = None):
     )
 
 def remove(dest, gw, netns = None):
+    log.debug(f"Removing route to {dest} via {gw} on netns {netns if netns else 'root'}")
     if netns:
         args = ['ip', '-n', netns, 'route', 'del', dest, 'via', gw]
     else:

@@ -13,16 +13,27 @@ from .exceptions import DckError, InstError
 
 log = logging.getLogger(__name__)
 
+existing_instances = {
+    'bridges': [],
+    'containers': []
+}
+
 def instantiate_network(conf, net_graph):
     try:
-        log.debug("Setting up the system")
+        log.info("Setting up the system")
         _system_setup()
-        log.info("Instantiating subnets")
+        log.info("Begining subnet creation")
         _instantiate_subnets(conf)
-        log.info("Instantiating routers")
+        log.info("Begining router creation")
         _instantiate_routers(conf, net_graph)
     except InstError as err:
         log.critical(f"Error instantiating the net: {err.cause}")
+        log.info("Cleaning what we had...")
+        try:
+            _undo_deployment(existing_instances)
+        except (IP2Error, DckError) as err:
+            log.critical(f"Error undoing the deployment: {err.cause}.")
+            log.critical("Try to manually remove containers and bridges left behind...")
         sys.exit(-1)
 
 def _system_setup():
@@ -36,17 +47,16 @@ def _system_setup():
 def _instantiate_subnets(conf):
     try:
         for subnet, config in conf['subnets'].items():
-            log.debug(f"Instantiating subnet {subnet}")
-            log.debug(f"Insantiating bridge {subnet}_brd")
+            log.info(f"Instantiating subnet {subnet}")
             _create_bridge(subnet + "_brd")
 
             for host in config['hosts']:
-                log.debug(f"Instantiating host {host}")
+                log.info(f"Instantiating host {host}")
                 _create_node(host, dx.types.host)
                 host_iface, _ = _connect_node(host, subnet + "_brd")
                 ipaddr.assign(
                     host_iface,
-                    request_ip(config['address']),
+                    request_ip(config['address'], hname = host),
                     netns = host
                 )
     except (IP2Error, DckError) as err:
@@ -54,14 +64,14 @@ def _instantiate_subnets(conf):
 
 def _instantiate_routers(conf, net_graph):
     try:
-        for router, config in conf['routers']:
-            log.debug(f"Instantiating router {router}")
+        for router, config in conf['routers'].items():
+            log.info(f"Instantiating router {router}")
             _create_node(router, dx.types.router)
             for subnet in config['subnets']:
                 router_iface, _ = _connect_node(router, subnet + "_brd")
                 ipaddr.assign(
                     router_iface,
-                    request_ip(conf['subnets'][subnet]['address']),
+                    request_ip(conf['subnets'][subnet]['address'], hname = router),
                     netns = router
                 )
             dx.apply_fw_rules(router, config['fw_rules'])
@@ -71,15 +81,15 @@ def _instantiate_routers(conf, net_graph):
 def _create_bridge(name):
     iplink.bridge.create(name)
     iplink.bridge.activate(name)
+    existing_instances['bridges'].append(name)
 
 def _create_node(name, type, img = None, caps = None):
     dx.run_container(
         name, type
     )
-    if dx.link_netns(name) != 0:
-        raise InstError(f"Error setting the hostname for {name}")
-
+    dx.link_netns(name)
     dx.set_hostname(name)
+    existing_instances['containers'].append(name)
 
 def _connect_node(node, bridge):
     x, y = f"{node}-{bridge}", f"{bridge}-{node}"
@@ -89,3 +99,27 @@ def _connect_node(node, bridge):
     iplink.veth.connect(bridge, y, host = False)
     iplink.veth.activate(y)
     return x, y
+
+def _undo_deployment(instances):
+    for bridge in instances['bridges']:
+        iplink.bridge.remove(bridge)
+
+    for container in instances['containers']:
+        dx.remove_container(container)
+
+def delete_net(net_conf):
+    log.info(f"Deleting the '{net_conf['name']}' network")
+    tmp = {'bridges': [], 'containers': []}
+    for subnet, config in net_conf['subnets'].items():
+        tmp['bridges'].append(subnet + "_brd")
+        for host in config['hosts']:
+            tmp['containers'].append(host)
+    for router in net_conf['routers'].keys():
+        tmp['containers'].append(router)
+
+    try:
+        _undo_deployment(tmp)
+    except (IP2Error, DckError) as err:
+        log.critical(f"Error undoing the deployment: {err.cause}.")
+        log.critical("Try to manually remove containers and bridges left behind...")
+        sys.exit(-1)

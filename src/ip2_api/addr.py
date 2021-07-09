@@ -1,6 +1,11 @@
+import logging
+
 from .cmds import _execute
 
+log = logging.getLogger(__name__)
+
 def assign(iface, cidr_block, netns = None):
+    log.debug(f"Assigning address {cidr_block} to interface {iface} on netns {netns if netns else 'root'}")
     if netns:
         args = [
             'ip', '-n', netns, 'addr', 'replace',
@@ -18,6 +23,7 @@ def assign(iface, cidr_block, netns = None):
     )
 
 def reset(iface, netns = None):
+    log.debug(f"Resetting interface {iface} on netns {netns if netns else 'root'}")
     if netns:
         args = ['ip', '-n', netns, 'addr', 'flush', 'dev', iface, 'scope', 'global']
     else:

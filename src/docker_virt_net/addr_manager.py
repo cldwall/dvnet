@@ -1,18 +1,21 @@
 next_subn_addr = {}
+assigned_addreses = {}
 
-def request_ip(subnet):
-    if subnet in next_subn_addr:
-        next_subn_addr[subnet] += 1
-        return "{}/{}".format(
-            binary_to_addr(next_subn_addr[subnet]),
-            subnet.split('/')[1]
-        )
+def request_ip(subnet, hname = None):
+    if subnet not in next_subn_addr:
+        next_subn_addr[subnet] = get_net_addr(subnet)
 
-    next_subn_addr[subnet] = get_net_addr(subnet) + 1
-    return "{}/{}".format(
-            binary_to_addr(next_subn_addr[subnet]),
-            subnet.split('/')[1]
-        )
+    next_subn_addr[subnet] += 1
+
+    a_addr = "{}/{}".format(
+        binary_to_addr(next_subn_addr[subnet]),
+        subnet.split('/')[1]
+    )
+
+    if hname:
+        assigned_addreses[hname] = a_addr.split('/')[0]
+
+    return a_addr
 
 def addr_to_binary(addr):
     bin_ip, loop_count = 0, 0

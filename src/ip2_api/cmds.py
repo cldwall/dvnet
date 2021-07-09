@@ -3,7 +3,10 @@ from .exceptions import IP2Error, UtilError
 
 def _execute(args, err_msg):
     if not os.geteuid() == 0:
-        raise IP2Error("Calls to iproute2 must be made by root")
+        if args[0] == 'ip':
+            raise IP2Error("Calls to iproute2 must be made by root!")
+        else:
+            raise UtilError("Writing calls to sysctl must be made by root!")
     try:
         subprocess.run(
             args,

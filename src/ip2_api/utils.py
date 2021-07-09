@@ -1,10 +1,14 @@
+import logging
 from .cmds import _execute, _get_value
+
+log = logging.getLogger(__name__)
 
 prev_bridge_nf_call = None
 prev_ipv4_forward = None
 
 def alter_ipv4_forwarding(disable = False):
     global prev_ipv4_forward
+    log.debug(f"Setting net.ipv4.ip_forward to {0 if disable else 1}")
     if not prev_ipv4_forward:
         prev_ipv4_forward = int(
             _get_value(
@@ -22,6 +26,7 @@ def alter_ipv4_forwarding(disable = False):
     )
 
 def restore_ipv4_forwarding():
+    log.debug(f"Restoring net.ipv4.ip_forward to {prev_ipv4_forward}")
     _execute(
         [
             'sysctl', '-w',
@@ -32,6 +37,7 @@ def restore_ipv4_forwarding():
 
 def alter_brd_iptables_calls(disable = True):
     global prev_bridge_nf_call
+    log.debug(f"Setting net.bridge.bridge-nf-call-iptables to {0 if disable else 1}")
     if not prev_bridge_nf_call:
         prev_bridge_nf_call = int(
             _get_value(
@@ -49,6 +55,7 @@ def alter_brd_iptables_calls(disable = True):
     )
 
 def restore_brd_iptables_calls():
+    log.debug(f"Restoring net.bridge.bridge-nf-call-iptables to {prev_bridge_nf_call}")
     _execute(
         [
             'sysctl', '-w',
@@ -58,6 +65,7 @@ def restore_brd_iptables_calls():
     )
 
 def create_netns_dir():
+    log.debug("Creating the /var/run/netns directory")
     _execute(
         ['mkdir', '-p', '/var/run/netns'],
         "Error creating the /var/run/netns directory"
