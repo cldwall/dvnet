@@ -2,6 +2,11 @@ import logging
 
 log = logging.getLogger(__name__)
 
+# As per RFC 1918
+private_ranges = [
+    "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"
+]
+
 next_subn_addr = {}
 assigned_addreses = {}
 

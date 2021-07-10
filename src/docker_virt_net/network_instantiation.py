@@ -13,6 +13,7 @@ from ip2_api.exceptions import IP2Error, UtilError
 from . import docker_cnx as dx
 
 from .exceptions import DckError, InstError
+from docker_virt_net import addr_manager
 
 log = logging.getLogger(__name__)
 
@@ -82,6 +83,18 @@ def _instantiate_routers(conf, net_graph):
                     netns = router
                 )
             dx.apply_fw_rules(router, config['fw_rules'])
+
+        if conf.get("internet_access", False):
+            log.info("Enabling internet access for the network")
+            first_router = list(conf['routers'].keys())[0]
+            iplink.bridge.activate('docker0')
+            r_iface, _ = _connect_node(first_router, 'docker0')
+            ipaddr.assign(r_iface, "172.17.0.2/16", first_router)
+            iproute.assign('default', '172.17.0.1', first_router)
+            for range in addr_manager.private_ranges:
+                dx.add_nat_rule(first_router, "ACCEPT", range)
+            dx.add_nat_rule(first_router, "MASQUERADE")
+
     except (IP2Error, DckError) as err:
         raise InstError(err.cause)
 
@@ -114,6 +127,12 @@ def _route_net(net_conf, net_graph):
             method = "dijkstra"
         )
 
+    if net_conf.get("internet_access", False):
+        paths_to_subnets['default'] = networkx.shortest_path(
+            net_graph, target = list(net_conf['routers'].keys())[0],
+            method = "dijkstra"
+        )
+
     log.debug(f"Discovered routes --\n{json.dumps(paths_to_subnets, indent = 2)}\n--")
 
     for subnet, paths_to_it in paths_to_subnets.items():
@@ -125,7 +144,7 @@ def _route_net(net_conf, net_graph):
             if len(path_to_subnet) == 2:
                 continue
             # Source and destination are included in the path
-            for hop in path_to_subnet[1:-1]:
+            for hop in path_to_subnet[1:]:
                 if hop in net_conf['routers'].keys():
                     gw_ip = _find_reachable_ip(source, hop)
                     try:

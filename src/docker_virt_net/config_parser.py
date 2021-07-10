@@ -4,10 +4,8 @@ from . import addr_manager
 
 log = logging.getLogger(__name__)
 
-private_ranges = {
-    subn: (addr_manager.get_net_addr(subn), addr_manager.get_brd_addr(subn)) for subn in [
-        "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"
-    ]
+private_ranges_limits = {
+    subn: (addr_manager.get_net_addr(subn), addr_manager.get_brd_addr(subn)) for subn in addr_manager.private_ranges
 }
 
 def parse_config(conf, schema = "net.schema"):
@@ -99,7 +97,7 @@ def check_private_ip(subnet):
     brd = addr_manager.get_brd_addr(subnet)
     net = addr_manager.get_net_addr(subnet)
 
-    for range, limits in private_ranges.items():
+    for range, limits in private_ranges_limits.items():
         if net >= limits[0] and brd <= limits[1]:
             log.debug(f"CIDR block {subnet} belongs to private IPv4 range {range}")
             return True

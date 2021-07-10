@@ -123,14 +123,27 @@ def _add_fw_rule(cont, chain, target, source, dest):
         _exec(
             cont,
             [
-                'iptables', '-I', chain,
-                '-j', target, '-p', 'all',
-                '-s', source,
-                '-d', dest
+                'iptables', '-A', chain, '-j', target,
+                '-s', source, '-d', dest
             ]
         )
-    except DckError:
-        raise DckError(f"Error on rule {source}/{dest}/{target}; chain {chain}")
+    except DckError as err:
+        raise DckError(f"{err.cause} @ rule {source}-{dest}-{target}; {chain} chain; filter table")
+
+def add_nat_rule(cont, target, dest = None):
+    cont = d_client.containers.get(cont)
+    args = [
+        'iptables', '-t', 'nat', '-A', 'POSTROUTING',
+        '-j', target, '-d', dest
+    ]
+
+    if dest == None:
+        args = args[:-2]
+
+    try:
+        _exec(cont, args)
+    except DckError as err:
+        raise DckError(f"{err.cause} @ rule any-{dest if dest else 'any'}-{target}; POSTROUTING chain; nat table")
 
 def append_to_file(name, content, file):
     try:
@@ -142,6 +155,9 @@ def append_to_file(name, content, file):
         raise DckError(f"Error appending {content} to {file} on {name}")
 
 def _exec(cont, args):
-    rc, _ = cont.exec_run(args)
-    if rc != 0:
-        raise DckError("Foo")
+    try:
+        rc, _ = cont.exec_run(args)
+        if rc != 0:
+            raise DckError("Non-zero return code")
+    except docker.errors.APIError as err:
+        raise DckError(err.explanation)

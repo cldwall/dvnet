@@ -9,6 +9,10 @@
             "description": "The network's name. Used only for displaying purposes.",
             "type": "string"
         },
+        "internet_access": {
+            "description": "Wether to allow EVERY network nodes to access the internet",
+            "type": "boolean"
+        },
         "subnets": {
             "type": "object",
             "minProperties": 1,
