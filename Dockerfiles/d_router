@@ -6,6 +6,7 @@ FROM ubuntu
 	# iputils-ping -> Install the ping command both for testing and demonstration purposes.
 	# openssh-server -> Allow incoming SSH connections. The client is installed by default.
 	# iptables -> Turn the routers into firewalls when needed.
+	# tcpdump -> Traffic analysis capabilities.
 
 # Remember we need to update the packge index before installing anything!
 
@@ -15,6 +16,7 @@ RUN \
 	apt-get install -y iputils-ping && \
 	apt-get install -y openssh-server && \
 	apt-get install -y iptables && \
+	apt-get install -y tcpdump && \
 	# Make the /run/sshd directory so that the SSH daemon is happy...
 	mkdir /run/sshd && \
 	# Allow others to log in as root in this machine
