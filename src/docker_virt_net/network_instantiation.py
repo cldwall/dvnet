@@ -95,7 +95,6 @@ def _create_node(name, type, img = None, caps = None):
         name, type
     )
     dx.link_netns(name)
-    dx.set_hostname(name)
     existing_instances['containers'].append(name)
 
 def _connect_node(node, bridge):

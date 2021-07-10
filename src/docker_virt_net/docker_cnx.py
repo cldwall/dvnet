@@ -45,6 +45,7 @@ def run_container(name, type, img = None, caps = None, sysctls = None):
         d_client.containers.run(
             img,
             name = name,
+            hostname = name,
             network_mode = "none",
             cap_add = caps,
             sysctls = sysctls,
@@ -80,13 +81,6 @@ def link_netns(name):
             )
     except subprocess.CalledProcessError:
         raise DckError(f"Error linking the netns of container {name}")
-
-def set_hostname(name):
-    log.debug(f"Setting {name}'s hostname")
-    try:
-        _exec(d_client.containers.get(name), ['hostname', name])
-    except DckError:
-        raise DckError(f"Error setting up hostname for {name}")
 
 def apply_fw_rules(name, fw_rules, chain = "FORWARD"):
     if len(fw_rules) <= 0:
