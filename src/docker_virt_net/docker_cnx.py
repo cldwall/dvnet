@@ -138,6 +138,15 @@ def _add_fw_rule(cont, chain, target, source, dest):
     except DckError:
         raise DckError(f"Error on rule {source}/{dest}/{target}; chain {chain}")
 
+def append_to_file(name, content, file):
+    try:
+        log.debug(f"Running 'bash -c 'echo {content} >> {file}'' on {name}")
+        d_client.containers.get(name).exec_run(
+            f"bash -c 'echo {content} >> {file}'"
+        )
+    except DckError:
+        raise DckError(f"Error appending {content} to {file} on {name}")
+
 def _exec(cont, args):
     rc, _ = cont.exec_run(args)
     if rc != 0:

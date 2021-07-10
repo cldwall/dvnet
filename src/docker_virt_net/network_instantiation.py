@@ -1,5 +1,4 @@
-import subprocess
-import sys, logging
+import sys, logging, json
 
 import networkx
 
@@ -32,6 +31,8 @@ def instantiate_network(conf, net_graph):
         _instantiate_routers(conf, net_graph)
         log.info("Beginning network routing")
         _route_net(conf, net_graph)
+        log.info("Adding entries to /etc/hosts at each node")
+        _update_hosts_files()
     except InstError as err:
         log.critical(f"Error instantiating the net: {err.cause}")
         log.info("Cleaning what we had...")
@@ -114,7 +115,7 @@ def _route_net(net_conf, net_graph):
             method = "dijkstra"
         )
 
-    print(paths_to_subnets)
+    log.debug(f"Discovered routes --\n{json.dumps(paths_to_subnets, indent = 2)}\n--")
 
     for subnet, paths_to_it in paths_to_subnets.items():
         for source, path_to_subnet in paths_to_it.items():
@@ -146,6 +147,17 @@ def _undo_deployment(instances):
 
     for container in instances['containers']:
         dx.remove_container(container)
+
+def _update_hosts_files():
+    for node in existing_instances['containers']:
+        log.debug(f"Updating /etc/hosts @ {node}")
+        for container in existing_instances['containers']:
+            if container != node:
+                dx.append_to_file(
+                    node,
+                    f"{name_2_ip(container)} {container}",
+                    "/etc/hosts"
+                )
 
 def delete_net(net_conf):
     log.info(f"Deleting the '{net_conf['name']}' network")
