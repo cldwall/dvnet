@@ -10,7 +10,11 @@
             "type": "string"
         },
         "internet_access": {
-            "description": "Wether to allow EVERY network nodes to access the internet",
+            "description": "Whether to allow EVERY network nodes to access the internet",
+            "type": "boolean"
+        },
+        "update_hosts": {
+            "description": "Whether to update the /etc/hosts file at each node",
             "type": "boolean"
         },
         "subnets": {

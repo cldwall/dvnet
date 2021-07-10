@@ -32,8 +32,9 @@ def instantiate_network(conf, net_graph):
         _instantiate_routers(conf, net_graph)
         log.info("Beginning network routing")
         _route_net(conf, net_graph)
-        log.info("Adding entries to /etc/hosts at each node")
-        _update_hosts_files()
+        if conf.get("update_hosts", False):
+            log.info("Adding entries to /etc/hosts at each node")
+            _update_hosts_files()
     except InstError as err:
         log.critical(f"Error instantiating the net: {err.cause}")
         log.info("Cleaning what we had...")

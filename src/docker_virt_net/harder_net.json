@@ -1,6 +1,7 @@
 {
     "name": "Harder Net",
     "internet_access": true,
+    "update_hosts": false,
     "subnets": {
         "A": {
             "address": "10.0.0.0/24",
