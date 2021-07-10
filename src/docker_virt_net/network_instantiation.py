@@ -159,6 +159,7 @@ def _route_net(net_conf, net_graph):
                         iproute.assign(subnet, gw_ip, netns = source)
                     except IP2Error as err:
                         raise InstError(err.cause)
+                    break
 
 def _find_reachable_ip(source, gw):
     gw_addresses = name_2_ip(gw, index = -1)
