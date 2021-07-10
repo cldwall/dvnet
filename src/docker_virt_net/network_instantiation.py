@@ -85,12 +85,20 @@ def _instantiate_routers(conf, net_graph):
             dx.apply_fw_rules(router, config['fw_rules'])
 
         if conf.get("internet_access", False):
+            try:
+                d_brd, d_gw, d_subnet = dx.get_default_net_data()
+            except DckError as err:
+                log.warning(f"Couldn't configure outward internet access: {err.cause}")
+
             log.info("Enabling internet access for the network")
+
             first_router = list(conf['routers'].keys())[0]
-            iplink.bridge.activate('docker0')
-            r_iface, _ = _connect_node(first_router, 'docker0')
-            ipaddr.assign(r_iface, "172.17.0.2/16", first_router)
-            iproute.assign('default', '172.17.0.1', first_router)
+            iplink.bridge.activate(d_brd)
+            r_iface, _ = _connect_node(first_router, d_brd)
+            addr_manager.request_ip(d_subnet)
+            r_ip = addr_manager.request_ip(d_subnet, first_router)
+            ipaddr.assign(r_iface, r_ip, first_router)
+            iproute.assign('default', d_gw, first_router)
             for range in addr_manager.private_ranges:
                 dx.add_nat_rule(first_router, "ACCEPT", range)
             dx.add_nat_rule(first_router, "MASQUERADE")

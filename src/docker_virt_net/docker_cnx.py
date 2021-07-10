@@ -29,6 +29,17 @@ sysctls_map = [
 
 d_client = docker.from_env()
 
+def get_default_net_data():
+    for net in d_client.networks.list():
+        if net.name == "bridge":
+            try:
+                brd = net.attrs['Options']['com.docker.network.bridge.name']
+                gw = net.attrs['IPAM']['Config'][0]['Gateway']
+                subn = net.attrs['IPAM']['Config'][0]['Subnet']
+            except (KeyError, docker.errors.APIError):
+                raise DckError("Couldn't retrieve default docker network configuration")
+            return brd, gw, subn
+
 def run_container(name, type, img = None, caps = None, sysctls = None):
     if not img:
         img = image_map[type]
