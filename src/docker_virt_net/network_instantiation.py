@@ -1,9 +1,13 @@
+import subprocess
 import sys, logging
 
-from .addr_manager import request_ip
+import networkx
+
+from .addr_manager import request_ip, name_2_ip, get_net_addr
 
 import ip2_api.link as iplink
 import ip2_api.addr as ipaddr
+import ip2_api.route as iproute
 import ip2_api.utils as iputils
 from ip2_api.exceptions import IP2Error, UtilError
 
@@ -26,6 +30,8 @@ def instantiate_network(conf, net_graph):
         _instantiate_subnets(conf)
         log.info("Begining router creation")
         _instantiate_routers(conf, net_graph)
+        log.info("Beginning network routing")
+        _route_net(conf, net_graph)
     except InstError as err:
         log.critical(f"Error instantiating the net: {err.cause}")
         log.info("Cleaning what we had...")
@@ -99,6 +105,40 @@ def _connect_node(node, bridge):
     iplink.veth.connect(bridge, y, host = False)
     iplink.veth.activate(y)
     return x, y
+
+def _route_net(net_conf, net_graph):
+    paths_to_subnets = {}
+    for subnet, config in net_conf['subnets'].items():
+        paths_to_subnets[config['address']] = networkx.shortest_path(
+            net_graph, target = subnet + "_brd",
+            method = "dijkstra"
+        )
+
+    print(paths_to_subnets)
+
+    for subnet, paths_to_it in paths_to_subnets.items():
+        for source, path_to_subnet in paths_to_it.items():
+            # No need to route bridges
+            if source in existing_instances['bridges']:
+                continue
+            # We belong to the same subnet
+            if len(path_to_subnet) == 2:
+                continue
+            # Source and destination are included in the path
+            for hop in path_to_subnet[1:-1]:
+                if hop in net_conf['routers'].keys():
+                    gw_ip = _find_reachable_ip(source, hop)
+                    try:
+                        iproute.assign(subnet, gw_ip, netns = source)
+                    except IP2Error as err:
+                        raise InstError(err.cause)
+
+def _find_reachable_ip(source, gw):
+    gw_addresses = name_2_ip(gw, index = -1)
+    gw_subnets = [get_net_addr(addr) for addr in gw_addresses]
+    for subnet in [get_net_addr(addr) for addr in name_2_ip(source, index = -1)]:
+        if subnet in gw_subnets:
+            return gw_addresses[gw_subnets.index(subnet)].split('/')[0]
 
 def _undo_deployment(instances):
     for bridge in instances['bridges']:

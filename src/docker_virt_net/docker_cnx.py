@@ -3,7 +3,7 @@ import docker, subprocess, logging
 # Supress urrlib3's log output below the WARNING level
 logging.getLogger("urllib3").setLevel(logging.WARNING)
 
-from .addr_manager import assigned_addreses as host_2_ip
+from .addr_manager import name_2_ip
 from .exceptions import DckError
 
 log = logging.getLogger(__name__)
@@ -117,7 +117,14 @@ def apply_fw_rules(name, fw_rules, chain = "FORWARD"):
         raise DckError(f"FW conf error @ {name}: Couldn't get container")
 
 def _add_fw_rule(cont, chain, target, source, dest):
-    source, dest = host_2_ip[source], host_2_ip[dest]
+    source, dest = name_2_ip(source), name_2_ip(dest)
+
+    if source == -1:
+        raise DckError(f"Couldn't retrieve {source}'s IP")
+
+    if dest == -1:
+        raise DckError(f"Couldn't retrieve {dest}'s IP")
+
     try:
         _exec(
             cont,

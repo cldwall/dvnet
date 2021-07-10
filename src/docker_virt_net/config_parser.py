@@ -68,7 +68,10 @@ def validate_subnet_addresses(conf):
     for subnet in conf['subnets'].values():
         try:
             subnet_addr = subnet['address']
-            ip, mask = subnet_addr.split('/')
+            tmp = subnet_addr.split('/')
+            if len(tmp) != 2:
+                raise ValueError
+            ip, mask = tmp
             if len(ip.split('.')) != 4:
                 raise ValueError
             for oct in ip.split('.'):

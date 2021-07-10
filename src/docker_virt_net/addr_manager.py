@@ -1,3 +1,7 @@
+import logging
+
+log = logging.getLogger(__name__)
+
 next_subn_addr = {}
 assigned_addreses = {}
 
@@ -13,7 +17,10 @@ def request_ip(subnet, hname = None):
     )
 
     if hname:
-        assigned_addreses[hname] = a_addr.split('/')[0]
+        if hname not in assigned_addreses:
+            assigned_addreses[hname] = [a_addr]
+        else:
+            assigned_addreses[hname].append(a_addr)
 
     return a_addr
 
@@ -41,3 +48,13 @@ def get_brd_addr(subn):
     for i in range(int(subn.split('/')[1])):
         mask |= 0x1 << (31 - i)
     return get_net_addr(subn) | ~mask
+
+def name_2_ip(name, index = 0):
+    try:
+        if index >= 0:
+            return assigned_addreses[name][index].split('/')[0]
+        elif index == -1:
+            return assigned_addreses[name]
+    except (KeyError, IndexError):
+        log.error(f"Couldn't retrieve IP address with index {index} for {name}")
+        return -1
