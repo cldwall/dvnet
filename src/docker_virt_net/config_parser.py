@@ -114,7 +114,7 @@ def build_graph(conf):
         Returns:
             networkx.Graph: A graph representing the entire network.
     """
-    net = networkx.Graph()
+    net = networkx.Graph(name = conf['name'])
     for subnet, content in conf['subnets'].items():
         if net.has_node(subnet + "_brd"):
             raise ConfError(f"Subnet {subnet} has been defined more than once")
@@ -122,16 +122,19 @@ def build_graph(conf):
         for host in content['hosts']:
             if net.has_node(host):
                 raise ConfError(f"Host {host} has been added more than once")
-            net.add_node(host, type = "node")
+            net.add_node(host, type = "host")
             net.add_edge(host, subnet + "_brd")
 
     for router, router_conf in conf['routers'].items():
         if net.has_node(router):
             raise ConfError(f"Router {router} has been added more than once")
-        net.add_node(router, type = "router", fw_rules = router_conf['fw_rules'])
+        net.add_node(router, type = "router", fw_rules = router_conf['fw_rules'], internet_gw = False)
         for subnet in router_conf['subnets']:
             if not net.has_node(subnet + "_brd"):
                 raise ConfError(f"Subnet {subnet} has not been defined and router {router} connects to it")
             net.add_edge(router, subnet + "_brd")
+
+    if conf.get("internet_access", False):
+        net.nodes[list(conf['routers'].keys())[0]]['internet_gw'] = True
 
     return net
