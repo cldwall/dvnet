@@ -2,7 +2,10 @@ import matplotlib, logging
 import matplotlib.pyplot as plt
 import networkx
 
-matplotlib.use("TkAgg")
+try:
+    matplotlib.use("TkAgg")
+except ImportError:
+    matplotlib.use("agg")
 
 log = logging.getLogger(__name__)
 
