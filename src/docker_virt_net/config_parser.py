@@ -12,7 +12,8 @@ optional_confs = {
     "internet_access": False,
     "update_hosts": False,
     "host_image": "d_host",
-    "router_image": "d_router"
+    "router_image": "d_router",
+    "private_routing": True
 }
 
 def parse_config(conf, schema = "net.schema"):

@@ -30,8 +30,12 @@ def instantiate_network(conf, net_graph):
         _instantiate_subnets(conf)
         log.info("Creating routers...")
         _instantiate_routers(conf, net_graph)
-        log.info("Routing the network...")
-        _route_net(conf, net_graph)
+        if conf['private_routing']:
+            log.info("Routing the private network...")
+            _private_routing(conf, net_graph)
+        if conf['internet_access']:
+            log.info("Routing the network towrds the Internet...")
+            _public_routing(conf, net_graph)
         if conf['update_hosts']:
             log.info("Adding entries to /etc/hosts at each node...")
             _update_hosts_files()
@@ -129,23 +133,32 @@ def _connect_node(node, bridge):
     iplink.veth.activate(y)
     return x, y
 
-def _route_net(net_conf, net_graph):
-    paths_to_subnets = {}
+def _public_routing(net_conf, net_graph):
+    routes = {
+        'default': networkx.shortest_path(
+            net_graph, target = list(net_conf['routers'].keys())[0],
+            method = "dijkstra"
+        )
+    }
+
+    log.debug(f"Discovered PUBLIC routes --\n{json.dumps(routes, indent = 2)}\n--")
+
+    _apply_routes(routes, net_conf)
+
+def _private_routing(net_conf, net_graph):
+    routes = {}
     for subnet, config in net_conf['subnets'].items():
-        paths_to_subnets[config['address']] = networkx.shortest_path(
+        routes[config['address']] = networkx.shortest_path(
             net_graph, target = subnet + "_brd",
             method = "dijkstra"
         )
 
-    if net_conf['internet_access']:
-        paths_to_subnets['default'] = networkx.shortest_path(
-            net_graph, target = list(net_conf['routers'].keys())[0],
-            method = "dijkstra"
-        )
+    log.debug(f"Discovered PRIVATE routes --\n{json.dumps(routes, indent = 2)}\n--")
 
-    log.debug(f"Discovered routes --\n{json.dumps(paths_to_subnets, indent = 2)}\n--")
+    _apply_routes(routes, net_conf)
 
-    for subnet, paths_to_it in paths_to_subnets.items():
+def _apply_routes(routes, net_conf):
+    for subnet, paths_to_it in routes.items():
         for source, path_to_subnet in paths_to_it.items():
             # No need to route bridges
             if source in existing_instances['bridges']:
