@@ -62,7 +62,7 @@ def _instantiate_subnets(conf):
 
             for host in config['hosts']:
                 log.debug(f"Instantiating host {host}")
-                _create_node(host, dx.types.host)
+                _create_node(host, dx.types.host, conf['host_image'])
                 host_iface, _ = _connect_node(host, subnet + "_brd")
                 ipaddr.assign(
                     host_iface,
@@ -76,7 +76,7 @@ def _instantiate_routers(conf, net_graph):
     try:
         for router, config in conf['routers'].items():
             log.debug(f"Instantiating router {router}")
-            _create_node(router, dx.types.router)
+            _create_node(router, dx.types.router, conf['router_image'])
             for subnet in config['subnets']:
                 router_iface, _ = _connect_node(router, subnet + "_brd")
                 ipaddr.assign(
@@ -113,9 +113,9 @@ def _create_bridge(name):
     iplink.bridge.activate(name)
     existing_instances['bridges'].append(name)
 
-def _create_node(name, type, img = None, caps = None):
+def _create_node(name, type, img):
     dx.run_container(
-        name, type
+        name, type, img
     )
     dx.link_netns(name)
     existing_instances['containers'].append(name)

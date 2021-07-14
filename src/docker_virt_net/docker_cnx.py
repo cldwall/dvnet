@@ -12,11 +12,6 @@ class types:
     host = 0
     router = 1
 
-image_map = [
-    "d_host",
-    "d_router"
-]
-
 caps_map = [
     ["SYS_ADMIN"],
     ["SYS_ADMIN", "NET_ADMIN"]
@@ -40,17 +35,8 @@ def get_default_net_data():
                 raise DckError("Couldn't retrieve default docker network configuration")
             return brd, gw, subn
 
-def run_container(name, type, img = None, caps = None, sysctls = None):
-    if not img:
-        img = image_map[type]
-
-    if not caps:
-        caps = caps_map[type]
-
-    if not sysctls:
-        sysctls = sysctls_map[type]
-
-    log.debug(f"Running container {name}: img = {img}; caps = {caps}; sysctls = {sysctls}")
+def run_container(name, type, img):
+    log.debug(f"Running container {name}: img = {img}; caps = {caps_map[type]}; sysctls = {sysctls_map[type]}")
 
     try:
         d_client.containers.run(
@@ -58,8 +44,8 @@ def run_container(name, type, img = None, caps = None, sysctls = None):
             name = name,
             hostname = name,
             network_mode = "none",
-            cap_add = caps,
-            sysctls = sysctls,
+            cap_add = caps_map[type],
+            sysctls = sysctls_map[type],
             detach = True
         )
     except docker.errors.ImageNotFound:
