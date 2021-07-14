@@ -13,13 +13,17 @@ class types:
     router = 1
 
 caps_map = [
-    ["SYS_ADMIN"],
+    ["SYS_ADMIN", "NET_ADMIN"],
     ["SYS_ADMIN", "NET_ADMIN"]
 ]
 
 sysctls_map = [
     {},
     {'net.ipv4.ip_forward': 1}
+]
+
+dns_resolvers = [
+    "1.1.1.1", "8.8.8.8"
 ]
 
 d_client = docker.from_env()
@@ -43,6 +47,7 @@ def run_container(name, type, img):
             img,
             name = name,
             hostname = name,
+            dns = dns_resolvers,
             network_mode = "none",
             cap_add = caps_map[type],
             sysctls = sysctls_map[type],
