@@ -8,6 +8,13 @@ private_ranges_limits = {
     subn: (addr_manager.get_net_addr(subn), addr_manager.get_brd_addr(subn)) for subn in addr_manager.private_ranges
 }
 
+optional_confs = {
+    "internet_access": False,
+    "update_hosts": False,
+    "host_image": "d_host",
+    "router_image": "d_router"
+}
+
 def parse_config(conf, schema = "net.schema"):
     """Loads the desired network configuration and performs initial validation.
 
@@ -46,6 +53,9 @@ def load_conf(conf_path, schema = "net.schema"):
             net_conf,
             schema = json.loads((pathlib.Path(__file__).parent / schema).read_text())
         )
+
+        for opt, default in optional_confs.items():
+            net_conf[opt] = net_conf.get(opt, default)
     except FileNotFoundError as err:
         raise ConfError(f"Couldn't find file {err.filename}")
     except json.JSONDecodeError as err:

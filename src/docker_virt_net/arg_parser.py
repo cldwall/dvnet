@@ -36,4 +36,9 @@ def parse_args():
         "--log", nargs = '?', default = "INFO", type = _log_level_check,
         help = "Log level (DEBUG | INFO | WARNING | ERROR | CRITICAL)."
     )
+    parser.add_argument(
+        "-d", "--defaults", action = 'store_true',
+        help = "Show the default values for optional elements in the JSON config files."
+    )
+
     return parser.parse_args()

@@ -20,6 +20,11 @@ def main():
 
     net_conf, net_graph = config_parser.parse_config(args.net_definition)
 
+    if args.defaults:
+        for opt, default in config_parser.optional_confs.items():
+            print(f"{opt}\t->\t{default}")
+        return 0
+
     if args.show != "NOSHOW":
         net_visualization.show_net(net_graph, args.show)
         return 0

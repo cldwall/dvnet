@@ -32,7 +32,7 @@ def instantiate_network(conf, net_graph):
         _instantiate_routers(conf, net_graph)
         log.info("Beginning network routing")
         _route_net(conf, net_graph)
-        if conf.get("update_hosts", False):
+        if conf['update_hosts']:
             log.info("Adding entries to /etc/hosts at each node")
             _update_hosts_files()
     except InstError as err:
@@ -85,7 +85,7 @@ def _instantiate_routers(conf, net_graph):
                 )
             dx.apply_fw_rules(router, config['fw_rules'])
 
-        if conf.get("internet_access", False):
+        if conf['internet_access']:
             try:
                 d_brd, d_gw, d_subnet = dx.get_default_net_data()
             except DckError as err:
@@ -136,7 +136,7 @@ def _route_net(net_conf, net_graph):
             method = "dijkstra"
         )
 
-    if net_conf.get("internet_access", False):
+    if net_conf['internet_access']:
         paths_to_subnets['default'] = networkx.shortest_path(
             net_graph, target = list(net_conf['routers'].keys())[0],
             method = "dijkstra"
