@@ -18,8 +18,13 @@ caps_map = [
 ]
 
 sysctls_map = [
-    {},
-    {'net.ipv4.ip_forward': 1}
+    {
+        'net.ipv6.conf.all.disable_ipv6': 0
+    },
+    {
+        'net.ipv6.conf.all.disable_ipv6': 0,
+        'net.ipv4.ip_forward': 1
+    }
 ]
 
 dns_resolvers = [
@@ -38,6 +43,9 @@ def get_default_net_data():
             except (KeyError, docker.errors.APIError):
                 raise DckError("Couldn't retrieve default docker network configuration")
             return brd, gw, subn
+
+# TODO: Use the extra_hosts (https://docker-py.readthedocs.io/en/stable/containers.html) parameter
+    # to update /etc/hosts within new containers!
 
 def run_container(name, type, img):
     log.debug(f"Running container {name}: img = {img}; caps = {caps_map[type]}; sysctls = {sysctls_map[type]}")
