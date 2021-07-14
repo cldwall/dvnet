@@ -49,7 +49,7 @@ def run_container(name, type, img):
             detach = True
         )
     except docker.errors.ImageNotFound:
-        raise DckError(f"Image for L3 device {name} not found")
+        raise DckError(f"Image '{img}' for L3 device {name} couldn't be found")
     except docker.errors.APIError as err:
         raise DckError(f"Docker engine error - {err.explanation}")
 
