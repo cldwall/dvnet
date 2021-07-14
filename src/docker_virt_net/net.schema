@@ -17,6 +17,14 @@
             "description": "Whether to update the /etc/hosts file at each node",
             "type": "boolean"
         },
+        "host_image": {
+            "description": "Image to be run by host containers",
+            "type": "string"
+        },
+        "router_image": {
+            "description": "Image to be run by router containers",
+            "type": "string"
+        },
         "subnets": {
             "type": "object",
             "minProperties": 1,
