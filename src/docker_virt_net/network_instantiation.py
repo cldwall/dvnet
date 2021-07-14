@@ -26,18 +26,19 @@ def instantiate_network(conf, net_graph):
     try:
         log.info("Setting up the system")
         _system_setup()
-        log.info("Begining subnet creation")
+        log.info("Creating subnets...")
         _instantiate_subnets(conf)
-        log.info("Begining router creation")
+        log.info("Creating routers...")
         _instantiate_routers(conf, net_graph)
-        log.info("Beginning network routing")
+        log.info("Routing the network...")
         _route_net(conf, net_graph)
         if conf['update_hosts']:
-            log.info("Adding entries to /etc/hosts at each node")
+            log.info("Adding entries to /etc/hosts at each node...")
             _update_hosts_files()
+        log.info(f"Network '{conf['name']}' is ready to go!")
     except InstError as err:
         log.critical(f"Error instantiating the net: {err.cause}")
-        log.info("Cleaning what we had...")
+        log.debug("Cleaning what we had...")
         try:
             _undo_deployment(existing_instances)
         except (IP2Error, DckError) as err:
@@ -56,11 +57,11 @@ def _system_setup():
 def _instantiate_subnets(conf):
     try:
         for subnet, config in conf['subnets'].items():
-            log.info(f"Instantiating subnet {subnet}")
+            log.debug(f"Instantiating subnet {subnet}")
             _create_bridge(subnet + "_brd")
 
             for host in config['hosts']:
-                log.info(f"Instantiating host {host}")
+                log.debug(f"Instantiating host {host}")
                 _create_node(host, dx.types.host)
                 host_iface, _ = _connect_node(host, subnet + "_brd")
                 ipaddr.assign(
@@ -74,7 +75,7 @@ def _instantiate_subnets(conf):
 def _instantiate_routers(conf, net_graph):
     try:
         for router, config in conf['routers'].items():
-            log.info(f"Instantiating router {router}")
+            log.debug(f"Instantiating router {router}")
             _create_node(router, dx.types.router)
             for subnet in config['subnets']:
                 router_iface, _ = _connect_node(router, subnet + "_brd")
@@ -91,7 +92,7 @@ def _instantiate_routers(conf, net_graph):
             except DckError as err:
                 log.warning(f"Couldn't configure outward internet access: {err.cause}")
 
-            log.info("Enabling internet access for the network")
+            log.info("Enabling internet access for each network node...")
 
             first_router = list(conf['routers'].keys())[0]
             iplink.bridge.activate(d_brd)
@@ -199,6 +200,7 @@ def delete_net(net_conf):
 
     try:
         _undo_deployment(tmp)
+        log.info(f"Deleted the '{net_conf['name']}' network correctly!")
     except (IP2Error, DckError) as err:
         log.critical(f"Error undoing the deployment: {err.cause}.")
         log.critical("Try to manually remove containers and bridges left behind...")

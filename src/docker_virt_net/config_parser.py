@@ -31,7 +31,7 @@ def parse_config(conf, schema = "net.schema"):
         validate_subnet_addresses(net_conf)
         log.debug(f"IPv4 addresses specified on {conf} seem good to go")
         net = build_graph(net_conf)
-        log.info(f"Built a graph representing the network defined in {conf}")
+        log.debug(f"Built a graph representing the network defined in {conf}")
         return net_conf, net
     except ConfError as err:
         log.critical(f"Error parsing the configuration: {err.cause}")
@@ -112,7 +112,7 @@ def check_private_ip(subnet):
             log.debug(f"CIDR block {subnet} belongs to private IPv4 range {range}")
             return True
 
-    log.debug(f"CIDR block {subnet} does not belong to a private block. This could interfere with outbound connectivity...")
+    log.warning(f"CIDR block {subnet} does not belong to a private block. This could interfere with outbound connectivity...")
     return False
 
 def build_graph(conf):
@@ -144,7 +144,7 @@ def build_graph(conf):
                 raise ConfError(f"Subnet {subnet} has not been defined and router {router} connects to it")
             net.add_edge(router, subnet + "_brd")
 
-    if conf.get("internet_access", False):
+    if conf['internet_access']:
         net.nodes[list(conf['routers'].keys())[0]]['internet_gw'] = True
 
     return net
