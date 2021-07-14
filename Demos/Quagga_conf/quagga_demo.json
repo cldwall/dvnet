@@ -1,0 +1,16 @@
+{
+    "name": "Quagga Configuration Demonstration",
+    "internet_access": true,
+    "subnets": {
+        "A": {
+            "address": "10.0.0.0/24",
+            "hosts": ["A-1", "A-2"]
+        }
+    },
+    "routers": {
+        "R-1": {
+            "fw_rules": {},
+            "subnets": ["A"]
+        }
+    }
+}
