@@ -1,4 +1,4 @@
-import sys, logging, json
+import sys, logging, json, tarfile, io
 
 import networkx
 
@@ -40,7 +40,7 @@ def instantiate_network(conf, net_graph):
             log.info("Adding entries to /etc/hosts at each node...")
             _update_hosts_files()
         log.info(f"Network '{conf['name']}' is ready to go!")
-    except InstError as err:
+    except (InstError, DckError, IP2Error) as err:
         log.critical(f"Error instantiating the net: {err.cause}")
         log.debug("Cleaning what we had...")
         try:
@@ -191,15 +191,35 @@ def _undo_deployment(instances):
         dx.remove_container(container)
 
 def _update_hosts_files():
+    hosts_file = '\n'.join(
+        [f"{addrs[0].split('/')[0]} {host}" for host, addrs in addr_manager.assigned_addreses.items()]
+    ) + '\n'
+    log.debug(f"Extra hosts:\n{hosts_file}")
+
+    # TAR file generation:
+        # data_buff -> Binary buffer containing the extra hosts to be added to /etc/hosts.
+        # tar_buff  -> Binary buffer where the generated TAR file will be written.
+        # tinfo     -> TarInfo instance containing the name and size of the TAR file.
+    data_buff, tar_buff = io.BytesIO(hosts_file.encode()), io.BytesIO()
+    t_file = tarfile.open(mode = 'w', fileobj = tar_buff)
+    tinfo = tarfile.TarInfo()
+    tinfo.name = "extra_hosts"
+    tinfo.size = data_buff.seek(0, io.SEEK_END)
+    data_buff.seek(0, io.SEEK_SET)
+    t_file.addfile(tinfo, data_buff)
+    t_file.close()
+    tar_buff.seek(0, io.SEEK_SET)
+    tar_data = tar_buff.read()
+
+    # Once the TAR file has been generated, upload it to containers
+        # and append it to /etc/hosts
     for node in existing_instances['containers']:
-        log.debug(f"Updating /etc/hosts @ {node}")
-        for container in existing_instances['containers']:
-            if container != node:
-                dx.append_to_file(
-                    node,
-                    f"{name_2_ip(container)} {container}",
-                    "/etc/hosts"
-                )
+        log.debug(f"Updating /etc/hosts @ node {node}")
+
+        # We CANNOT overwrite /etc/hosts as it is bind-mounted
+            # by the docker engine from the host's disk...
+        dx.upload_file(node, "/etc", tar_data)
+        dx.append_file_to_file(node, f"/etc/{tinfo.name}", "/etc/hosts")
 
 def delete_net(net_conf):
     log.info(f"Deleting the '{net_conf['name']}' network")

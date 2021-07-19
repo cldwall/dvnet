@@ -155,14 +155,19 @@ def add_nat_rule(cont, target, dest = None):
     except DckError as err:
         raise DckError(f"{err.cause} @ rule any-{dest if dest else 'any'}-{target}; POSTROUTING chain; nat table")
 
-def append_to_file(name, content, file):
+def append_file_to_file(name, src, dst):
     try:
-        log.debug(f"Running 'bash -c 'echo {content} >> {file}'' on {name}")
         d_client.containers.get(name).exec_run(
-            f"bash -c 'echo {content} >> {file}'"
+            f"bash -c 'cat {src} >> {dst}'"
         )
-    except DckError:
-        raise DckError(f"Error appending {content} to {file} on {name}")
+    except docker.errors.APIError as err:
+        raise DckError(err.explanation)
+
+def upload_file(name, path, data):
+    try:
+        d_client.containers.get(name).put_archive(path, data)
+    except docker.errors.APIError as err:
+        raise DckError(err.explanation)
 
 def _exec(cont, args):
     try:
