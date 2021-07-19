@@ -11,8 +11,8 @@ private_ranges_limits = {
 optional_confs = {
     "internet_access": False,
     "update_hosts": False,
-    "host_image": "d_host",
-    "router_image": "d_router",
+    "host_image": "pcollado/d_host",
+    "router_image": "pcollado/d_router",
     "private_routing": True
 }
 
