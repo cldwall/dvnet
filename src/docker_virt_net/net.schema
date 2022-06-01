@@ -41,7 +41,7 @@
                         "hosts": {
                             "description": "List of hosts belonging to this subnet",
                             "type": "array",
-                            "items": {"type": "string"},
+                            "prefixItems": {"type": "string"},
                             "uniqueItems": true
                         }
                     },
@@ -69,28 +69,28 @@
                                 "ACCEPT": {
                                     "description": "Rules for the FORWARD chain describing packets to be ACCEPTed",
                                     "type": "array",
-                                    "items": {
+                                    "prefixItems": {
                                         "type": "array",
-                                        "items": [
+                                        "prefixItems": [
                                             {"type": "string"},
                                             {"type": "string"},
                                             {"type": "boolean"}
                                         ],
-                                        "additionalItems": false
+                                        "items": false
                                     },
                                     "uniqueItems": true
                                 },
                                 "DROP": {
                                     "description": "Rules for the FORWARD chain describing packets to be DROPped",
                                     "type": "array",
-                                    "items": {
+                                    "prefixItems": {
                                         "type": "array",
-                                        "items": [
+                                        "prefixItems": [
                                             {"type": "string"},
                                             {"type": "string"},
                                             {"type": "boolean"}
                                         ],
-                                        "additionalItems": false
+                                        "items": false
                                     },
                                     "uniqueItems": true
                                 }
@@ -103,7 +103,7 @@
                         "subnets": {
                             "description": "Subnets this router attaches to",
                             "type": "array",
-                            "items": {"type": "string"},
+                            "prefixItems": {"type": "string"},
                             "uniqueItems": true
                         }
                     },
