@@ -57,7 +57,7 @@ class veth:
 class bridge:
     @staticmethod
     def create(name):
-        log.debug(f"Activating bridge {name}")
+        log.debug(f"Creating bridge {name}")
         _execute(
             [
                 'ip', 'link', 'add', 'name',
