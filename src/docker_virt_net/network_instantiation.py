@@ -34,7 +34,7 @@ def instantiate_network(conf, net_graph):
             log.info("Routing the private network...")
             _private_routing(conf, net_graph)
         if conf['internet_access']:
-            log.info("Routing the network towrds the Internet...")
+            log.info("Routing the network towards the Internet...")
             _public_routing(conf, net_graph)
         if conf['update_hosts']:
             log.info("Adding entries to /etc/hosts at each node...")
