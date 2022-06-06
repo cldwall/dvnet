@@ -1,4 +1,4 @@
-import logging, sys, json
+import logging, sys
 
 import networkx as nx
 
