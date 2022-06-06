@@ -10,17 +10,17 @@ level_map = {
     "CRITICAL": logging.CRITICAL
 }
 
-def _log_level_check(level):
-    if level.upper() not in ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]:
-        raise argparse.ArgumentTypeError
-    return level_map[level.upper()]
-
 def parse_args():
     log.debug("Parsing input arguments")
     parser = argparse.ArgumentParser(description = "Logical to Physical topology mapper")
     parser.add_argument(
         "logical_definition",
         help = "GEXF file containing the desired network's definition."
+    )
+    parser.add_argument(
+        "-a", "--algorithm", default = "naive-multi-router",
+        choices = ["naive-multi-router"],
+        help = "The algorithm to use for instantiating the network."
     )
     parser.add_argument(
         "-r", "--remove", action = 'store_true',
@@ -31,8 +31,9 @@ def parse_args():
         help = "Show a visual representation of the network defined on <net_definition> (PATH to save file)."
     )
     parser.add_argument(
-        "--log", nargs = '?', default = "INFO", type = _log_level_check,
-        help = "Log level (DEBUG | INFO | WARNING | ERROR | CRITICAL)."
+        "--log", nargs = '?', default = "INFO",
+        choices = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        help = "Log level."
     )
     parser.add_argument(
         "-d", "--defaults", action = 'store_true',
