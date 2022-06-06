@@ -47,8 +47,7 @@ def instantiate_net(logicalGraph):
         ipaddr.assign(nIface, hIP, netns = hostName)
 
         log.info(f"Adding router {routerName} to the topology graph")
-        topology.add_node(routerName, type = "router",
-            fw_rules = {"POLICY": "DROP", "ACCEPT": [], "DROP": []}, internet_gw = False)
+        topology.add_node(routerName, type = "router", internet_gw = False)
 
         ni._create_node(routerName, dx.types.router, "pcollado/d_router")
         log.info(f"Adding the {brdName} <--> {routerName} edge")
@@ -81,6 +80,14 @@ def instantiate_net(logicalGraph):
             if sRouter == tRouter:
                 continue
             iproute.assign(tSubnet, tIP, netns = sRouter)
+
+    relabeledLogicalGraph = nx.relabel_nodes(logicalGraph,
+        {node: f"h{i}" for i, node in enumerate(logicalGraph.nodes())})
+
+    for i, node in enumerate(relabeledLogicalGraph):
+        dx.apply_fw_rules(f"r{i}", {"POLICY": "DROP", "DROP": [], "ACCEPT": [
+            (node, neigh, True) for neigh in relabeledLogicalGraph.neighbors(node)
+        ]})
 
 def remove_net(logicalGraph):
     tmp = {"bridges": ["brdCore"], "containers": []}
