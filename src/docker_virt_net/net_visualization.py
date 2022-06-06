@@ -20,7 +20,7 @@ colour_map = {
 def show_net(net_graph, fig_path, k = 0.5, n_size = 400, e_size = 1, f_size = 10):
     log.debug("Showing a network visualization")
     pos = networkx.spring_layout(net_graph, k = k)
-    fig = plt.figure("Network Visualization")
+    fig = plt.figure(f"{net_graph.graph.get('name', 'Unnamed Graph').capitalize()} Network Visualization")
 
     node_colours = [colour_map[node[1].get("type", "notype")] for node in net_graph.nodes.data()]
 
