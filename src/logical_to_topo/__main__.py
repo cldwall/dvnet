@@ -8,14 +8,16 @@ from . import naive_multi_router
 from docker_virt_net import coloured_log_formatter
 
 niMap = {
-    "naive-multi-router": (naive_multi_router.instantiate_net, naive_multi_router.remove_net)
+    "naive-multi-router": (
+        naive_multi_router.instantiate_net, naive_multi_router.remove_net, naive_multi_router.dump_graph_figure
+    )
 }
 
 def main():
     args = arg_parser.parse_args()
 
     logger = logging.getLogger()
-    logger.setLevel(arg_parser.level_map[args.log.upper()])
+    logger.setLevel(arg_parser.level_map[args.log])
 
     ch = logging.StreamHandler()
     ch.setLevel(logging.DEBUG)
@@ -33,7 +35,14 @@ def main():
 
     if args.remove:
         niMap[args.algorithm][1](logicalGraph)
+        return
+
+    if args.dump:
+        niMap[args.algorithm][2](logicalGraph, args.logical_definition.split('/')[-1].split('.')[0])
+        return
+
     niMap[args.algorithm][0](logicalGraph)
+    return
 
 if __name__ == "__main__":
     main()

@@ -98,4 +98,27 @@ def remove_net(logicalGraph):
 
     log.info(f"Deleting the following instances:\n{json.dumps(tmp)}")
     ni._undo_deployment(tmp)
-    sys.exit(0)
+
+def dump_graph_figure(logicalGraph, name: str):
+    topology, n = nx.Graph(name = f"{name.capitalize().replace('_', ' ')} Topology"), len(logicalGraph)
+
+    topology.add_node("brdCore", type = "bridge", subnet = "")
+
+    for i in range(n):
+        brdName, hostName, routerName = f"brd{i}", f"h{i}", f"r{i}"
+        topology.add_node(brdName, type = "bridge", subnet = "")
+        topology.add_node(hostName, type = "host")
+        topology.add_edge(brdName, hostName)
+        topology.add_node(routerName, type = "router", internet_gw = False)
+        topology.add_edge(brdName, routerName)
+        topology.add_edge("brdCore", routerName)
+
+    relabeledLogicalGraph = nx.relabel_nodes(logicalGraph,
+        {node: f"h{i}" for i, node in enumerate(logicalGraph.nodes())})
+    relabeledLogicalGraph.graph['name'] = name.capitalize().replace('_', ' ')
+
+    nx.write_gexf(topology, f"{name}_topology.gexf")
+    net_visualization.show_net(topology, f"{name}_topology")
+
+    nx.write_gexf(relabeledLogicalGraph, f"{name}_relabeled.gexf")
+    net_visualization.show_net(relabeledLogicalGraph, f"{name}_relabeled")
