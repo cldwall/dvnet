@@ -26,7 +26,7 @@ def instantiate_net(logicalGraph):
         currentSubnet = "{}/30".format(
             addr_manager.binary_to_addr(ip_utils.addr_to_binary(currentSubnet.split("/")[0]) + 4)
         )
-    routerNetwork(nNodes)
+    routeNetwork(nNodes)
     configureFirewalls(logicalGraph)
 
 def remove_net(logicalGraph):
@@ -95,7 +95,7 @@ def addNetworkAddresses(addressingInfo):
 def addHostNetworkRoutes(host, routerSubnetIP):
     iproute.assign("default", routerSubnetIP.split("/")[0], netns = host)
 
-def routerNetwork(nNodes):
+def routeNetwork(nNodes):
     rNames = [f"r{i}" for i in range(nNodes)]
     for tRouter in rNames:
         rawSubnet = addr_manager.name_2_ip(tRouter, -1)
