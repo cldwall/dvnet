@@ -4,12 +4,16 @@ import networkx as nx
 
 from . import arg_parser
 from . import naive_multi_router
+from . import naive_mono_router
 
 from docker_virt_net import coloured_log_formatter
 
 niMap = {
     "naive-multi-router": (
         naive_multi_router.instantiate_net, naive_multi_router.remove_net, naive_multi_router.dump_graph_figure
+    ),
+    "naive-mono-router": (
+        naive_mono_router.instantiate_net, naive_mono_router.remove_net, naive_mono_router.dump_graph_figure
     )
 }
 
