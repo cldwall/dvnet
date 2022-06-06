@@ -6,6 +6,7 @@ from docker_virt_net import addr_manager
 from docker_virt_net import network_instantiation as ni
 from docker_virt_net import docker_cnx as dx
 from docker_virt_net import ip_utils
+from docker_virt_net import net_visualization
 
 import ip2_api.addr as ipaddr
 import ip2_api.route as iproute
@@ -17,10 +18,11 @@ def instantiate_net(logicalGraph):
 
     currentSubnet = "10.0.0.0/30"
 
-    log.info(f"Instantiating the core bridge")
-    ni._create_bridge("brdCore")
-
     topology, n = nx.Graph(name = "Topology"), len(logicalGraph)
+
+    log.info(f"Adding bridge brdCore to the topology graph")
+    topology.add_node("brdCore", type = "bridge", subnet = "")
+    ni._create_bridge("brdCore")
 
     for i, node in enumerate(list(logicalGraph.nodes())):
         brdName, hostName, routerName = f"brd{i}", f"h{i}", f"r{i}"
@@ -28,7 +30,6 @@ def instantiate_net(logicalGraph):
         log.info(f"Adding bridge {brdName} to the topology graph")
         topology.add_node(brdName, type = "bridge", subnet = "")
 
-        log.info(f"Instantiating bridge {brdName}")
         ni._create_bridge(brdName)
 
         log.info(f"Adding host {hostName} to the topology graph")
@@ -40,27 +41,26 @@ def instantiate_net(logicalGraph):
         log.info(f"Adding the {brdName} <--> {hostName} edge")
         topology.add_edge(brdName, hostName)
 
-        log.info(f"Adding the {brdName} <--> {hostName} veth")
         nIface, _ = ni._connect_node(hostName, brdName)
 
         hIP = addr_manager.request_ip(currentSubnet, hname = hostName)
-        log.info(f"Assigning IPv4 {hIP} to host {hostName}")
         ipaddr.assign(nIface, hIP, netns = hostName)
 
         log.info(f"Adding router {routerName} to the topology graph")
-        topology.add_node(routerName, type = "router", fw_rules = {}, internet_gw = False)
+        topology.add_node(routerName, type = "router",
+            fw_rules = {"POLICY": "DROP", "ACCEPT": [], "DROP": []}, internet_gw = False)
 
         ni._create_node(routerName, dx.types.router, "pcollado/d_router")
-        log.info(f"Adding the {brdName} <--> {routerName} veth")
+        log.info(f"Adding the {brdName} <--> {routerName} edge")
+        topology.add_edge(brdName, routerName)
         rIfaceSubnet, _ = ni._connect_node(routerName, brdName)
-        log.info(f"Adding the {hostName} <--> {routerName} veth")
+        log.info(f"Adding the brdCore <--> {routerName} edge")
+        topology.add_edge("brdCore", routerName)
         rIfaceCore, _ = ni._connect_node(routerName, "brdCore")
 
         rIPSubnet = addr_manager.request_ip(currentSubnet, hname = routerName)
-        rIPCore = addr_manager.request_ip("172.16.0.0/12", hname = hostName)
-        log.info(f"Assigning subnet IPv4 {rIPSubnet} to router {routerName}")
+        rIPCore = addr_manager.request_ip("172.16.0.0/12", hname = routerName)
         ipaddr.assign(rIfaceSubnet, rIPSubnet, netns = routerName)
-        log.info(f"Assigning core IPv4 {rIPCore} to router {routerName}")
         ipaddr.assign(rIfaceCore, rIPCore, netns = routerName)
 
         iproute.assign("default", rIPSubnet.split("/")[0], netns = hostName)
@@ -69,9 +69,18 @@ def instantiate_net(logicalGraph):
             addr_manager.binary_to_addr(ip_utils.addr_to_binary(currentSubnet.split("/")[0]) + 4)
         )
 
-    # nx.add_cycle(topology, [f"r{i}" for i in range(n)], type = "router", fw_rules = {}, internet_gw = False)
-
-    # net_visualization.show_net(topology, "NOSTORE", k = 0.01)
+    rNames = [f"r{i}" for i in range(n)]
+    for tRouter in rNames:
+        rawSubnet = addr_manager.name_2_ip(tRouter, -1)
+        tSubnet = "{}/{}".format(
+            addr_manager.binary_to_addr(addr_manager.get_net_addr(rawSubnet[0])),
+            rawSubnet[0].split('/')[1]
+        )
+        tIP = rawSubnet[-1].split('/')[0]
+        for sRouter in rNames:
+            if sRouter == tRouter:
+                continue
+            iproute.assign(tSubnet, tIP, netns = sRouter)
 
 def remove_net(logicalGraph):
     tmp = {"bridges": ["brdCore"], "containers": []}
