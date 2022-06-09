@@ -128,7 +128,7 @@ def _connect_node(node, bridge, vID = None, brdToBrd = False):
     x, y = f"{node}-{bridge}{f'-{vID}' if vID else ''}", f"{bridge}-{node}{f'-{vID}' if vID else ''}"
     iplink.veth.create(x, y)
     iplink.veth.connect(node, x, host = not brdToBrd)
-    iplink.veth.activate(x, netns = node)
+    iplink.veth.activate(x, netns = node if not brdToBrd else None)
     iplink.veth.connect(bridge, y, host = False)
     iplink.veth.activate(y)
     return x, y
