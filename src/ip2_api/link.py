@@ -75,6 +75,22 @@ class bridge:
         )
 
     @staticmethod
+    def enableVLAN(name):
+        log.debug(f"Enabling VLAN filtering on bridge {name}")
+        _execute(
+            ['ip', 'link', 'set', name, 'type', 'bridge', 'vlan_filtering', '1'],
+            f"Error enabling VLAN filtering on bridge {name}"
+        )
+
+    @staticmethod
+    def disableVLAN(name):
+        log.debug(f"Enabling VLAN filtering on bridge {name}")
+        _execute(
+            ['ip', 'link', 'set', name, 'type', 'bridge', 'vlan_filtering', '0'],
+            f"Error enabling VLAN filtering on bridge {name}"
+        )
+
+    @staticmethod
     def remove(name):
         log.debug(f"Removing bridge {name}")
         _execute(
