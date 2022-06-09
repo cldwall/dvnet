@@ -13,7 +13,7 @@ import ip2_api.route as iproute
 
 log = logging.getLogger(__name__)
 
-def instantiate_net(logicalGraph):
+def instantiate_net(logicalGraph, _):
     ni._system_setup()
     currentSubnet = "10.0.0.0/30"
     topology, nNodes = nx.Graph(name = "Topology"), len(logicalGraph)

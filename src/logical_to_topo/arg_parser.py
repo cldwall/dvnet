@@ -36,6 +36,10 @@ def parse_args():
         help = "Dump visualisation and GEXF files for the logical and physical topologies."
     )
     parser.add_argument(
+        "-c", "--cliques", action = 'store_true',
+        help = "Dump discovered cliques. This is only applicable for the `vlans` algorithm."
+    )
+    parser.add_argument(
         "--log", nargs = '?', default = "info",
         choices = ["debug", "info", "warning", "error", "critical"],
         help = "Log level."

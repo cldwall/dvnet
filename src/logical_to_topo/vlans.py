@@ -1,13 +1,10 @@
-from asyncore import write
-from ipaddress import ip_address
-import logging, json, math
+import logging, json, math, pathlib
 
 import networkx as nx
 
 from docker_virt_net import addr_manager
 from docker_virt_net import network_instantiation as ni
 from docker_virt_net import docker_cnx as dx
-from docker_virt_net import ip_utils
 from docker_virt_net import net_visualization
 from networkx.drawing.nx_agraph import write_dot
 
@@ -19,7 +16,7 @@ import ip2_api.vlan as ipvlan
 
 log = logging.getLogger(__name__)
 
-def instantiate_net(logicalGraph):
+def instantiate_net(logicalGraph, storeCliques):
     ni._system_setup()
 
     topology = nx.Graph(name = "Topology")
@@ -27,7 +24,8 @@ def instantiate_net(logicalGraph):
     ni._create_bridge("brdCore")
     iplink.bridge.enableVLAN("brdCore")
 
-    cliques = discoverCliques(logicalGraph)
+    log.debug("Beginning clique discovery...")
+    cliques = discoverCliques(logicalGraph, storeCliques)
     log.debug(f"Discovered cliques: {cliques}")
 
     nextFreeIP, currVLANID = "10.0.0.0", 2
@@ -62,7 +60,7 @@ def instantiate_net(logicalGraph):
 
         log.debug(f"Assigned addresses -> {addr_manager.assigned_addreses}")
 
-def discoverCliques(logicalGraph: nx.Graph) -> dict[int, Union[int, list[set]]]:
+def discoverCliques(logicalGraph: nx.Graph, storeCliques: bool = False) -> dict[int, Union[int, list[set]]]:
     cliques = {}
     for clique in list(nx.enumerate_all_cliques(logicalGraph)):
         cLen = len(clique)
@@ -73,6 +71,8 @@ def discoverCliques(logicalGraph: nx.Graph) -> dict[int, Union[int, list[set]]]:
         else:
             cliques[cLen].append(set(clique))
         cliques[0] = max(cliques.keys())
+    if storeCliques:
+        pathlib.Path("cliques.json").write_text(json.dumps(cliques))
     return cliques
 
 def remove_net(logicalGraph):

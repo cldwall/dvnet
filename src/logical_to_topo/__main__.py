@@ -50,7 +50,7 @@ def main():
         niMap[args.algorithm][2](logicalGraph, args.logical_definition.split('/')[-1].split('.')[0])
         return
 
-    niMap[args.algorithm][0](logicalGraph)
+    niMap[args.algorithm][0](logicalGraph, args.cliques)
     return
 
 if __name__ == "__main__":
