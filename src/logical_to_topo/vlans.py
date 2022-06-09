@@ -81,7 +81,7 @@ def remove_net(logicalGraph):
         tmp["containers"].append(node)
 
     log.info(f"Deleting the following instances:\n{json.dumps(tmp)}")
-    ni._undo_deployment(tmp)
+    ni._undo_deployment(tmp, fail = False)
 
 def dump_graph_figure(logicalGraph, name: str):
     topology = nx.MultiGraph(name = f"{name.capitalize().replace('_', ' ')} Topology")
