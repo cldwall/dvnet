@@ -19,7 +19,7 @@ def parse_args():
     )
     parser.add_argument(
         "-a", "--algorithm", default = "naive-multi-router",
-        choices = ["naive-multi-router", "naive-mono-router"],
+        choices = ["naive-multi-router", "naive-mono-router", "vlans"],
         help = "The algorithm to use for instantiating the network."
     )
     parser.add_argument(

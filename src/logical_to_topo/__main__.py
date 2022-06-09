@@ -5,6 +5,7 @@ import networkx as nx
 from . import arg_parser
 from . import naive_multi_router
 from . import naive_mono_router
+from . import vlans
 
 from docker_virt_net import coloured_log_formatter
 
@@ -14,6 +15,9 @@ niMap = {
     ),
     "naive-mono-router": (
         naive_mono_router.instantiate_net, naive_mono_router.remove_net, naive_mono_router.dump_graph_figure
+    ),
+    "vlans": (
+        vlans.instantiate_net, vlans.remove_net, vlans.dump_graph_figure
     )
 }
 
