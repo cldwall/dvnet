@@ -65,9 +65,9 @@ def instantiate_net(logicalGraph, storeCliques):
             # Linux bridges can tolerate a maximum of 1024 ports: we can use 1023 for hosts and
                 # we need a remaining one for a trunk port. We can use the following to effectively
                 # check that's the imposed limit: `echo $((( $(bridge -c vlan show | wc -l) - 1) / 2))`
-            if instantiatedEdges % 1023 == 0:
+            if instantiatedEdges % 1022 == 0:
                 log.info(f"Creating a new edge switch!")
-                currEdgeBridge = f"brdE{int(instantiatedEdges / 1023)}"
+                currEdgeBridge = f"brdE{int(instantiatedEdges / 1022)}"
                 topology.add_node(currEdgeBridge, type = "bridge", subnet = "")
                 topology.add_edge("brdC", currEdgeBridge)
                 ni._create_bridge(currEdgeBridge)
@@ -78,7 +78,7 @@ def instantiate_net(logicalGraph, storeCliques):
         log.debug(f"Assigned addresses -> {addr_manager.assigned_addreses}")
 
 def remove_net(logicalGraph):
-    tmp = {"bridges": ["brdC", *[f"brdE{i}" for i in range(len(logicalGraph) / 1023)]], "containers": []}
+    tmp = {"bridges": ["brdC", *[f"brdE{i}" for i in range(len(logicalGraph) / 1022)]], "containers": []}
     for node in logicalGraph:
         tmp["containers"].append(node)
 
