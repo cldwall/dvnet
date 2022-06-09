@@ -16,15 +16,23 @@ import ip2_api.vlan as ipvlan
 
 log = logging.getLogger(__name__)
 
-def instantiate_net(logicalGraph, storeCliques):
+def instantiate_net(logicalGraph):
     ni._system_setup()
 
     topology = nx.Graph(name = "Topology")
     topology.add_node("brdCore", type = "bridge", subnet = "")
     ni._create_bridge("brdCore")
-    iplink.bridge.enableVLAN("brdCore")
 
-    nextFreeIP, currVLANID = "10.0.0.0", 2
+    trunkVLAN = ipvlan.vlan(0)
+
+    topology.add_node("brdEdge0", type = "bridge", subnet = "")
+    topology.add_edge("brdCore", "brdEdge0")
+    ni._create_bridge("brdEdge0")
+    iplink.bridge.enableVLAN("brdEdge0")
+    _, edgeIface = ni._connect_node("brdCore", "brdEdge0")
+    trunkVLAN.addIface(edgeIface)
+
+    nextFreeIP, currVLANID, instantiatedHosts, currEdgeBridge = "10.0.0.0", 2, 0, "brdEdge0"
 
     for clique in nx.find_cliques(logicalGraph):
 
@@ -47,7 +55,20 @@ def instantiate_net(logicalGraph, storeCliques):
         log.debug(f"Assigning addresses from subnet --> {cliqueSubnet}")
 
         for host in clique:
-            addHost(topology, host, cliqueSubnet, cliqueVLAN)
+            addHost(topology, currEdgeBridge, host, cliqueSubnet, cliqueVLAN)
+            instantiatedHosts += 1
+
+            # Linux bridges can tolerate a maximum of 1024 ports: we can use 1023 for hosts and
+                # we need a remaining one for a trunk port. We can use the following to effectively
+                # check that's the imposed limit: `echo $((( $(bridge -c vlan show | wc -l) - 1) / 2))`
+            if instantiatedHosts % 1023 == 0:
+                currEdgeBridge = f"brdEdge{int(instantiatedHosts / 1023)}"
+                topology.add_node(currEdgeBridge, type = "bridge", subnet = "")
+                topology.add_edge("brdCore", currEdgeBridge)
+                ni._create_bridge(currEdgeBridge)
+                iplink.bridge.enableVLAN(currEdgeBridge)
+                _, edgeIface = ni._connect_node("brdCore",currEdgeBridge)
+                trunkVLAN.addIface(edgeIface)
 
         log.debug(f"Assigned addresses -> {addr_manager.assigned_addreses}")
 
