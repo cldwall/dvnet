@@ -55,6 +55,9 @@ def instantiate_net(logicalGraph, storeCliques):
         log.debug(f"Assigning addresses from subnet --> {cliqueSubnet}")
 
         for host in clique:
+            # Docker container names must be at least 2 characters long
+            if len(host) == 1:
+                host = f"0{host}"
             log.info(f"Adding host {host}; instantiated {instantiatedEdges} edges")
             addHost(topology, currEdgeBridge, host, cliqueSubnet, cliqueVLAN)
             instantiatedEdges += 1
