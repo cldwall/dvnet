@@ -16,7 +16,7 @@ import ip2_api.vlan as ipvlan
 
 log = logging.getLogger(__name__)
 
-def instantiate_net(logicalGraph):
+def instantiate_net(logicalGraph, storeCliques):
     ni._system_setup()
 
     topology = nx.Graph(name = "Topology")
