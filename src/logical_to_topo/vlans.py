@@ -32,7 +32,7 @@ def instantiate_net(logicalGraph, storeCliques):
     _, edgeIface = ni._connect_node("brdC", "brdE0", brdToBrd = True)
     trunkVLAN.addIface(edgeIface)
 
-    nextFreeIP, currVLANID, instantiatedHosts, currEdgeBridge = "10.0.0.0", 2, 0, "brdE0"
+    nextFreeIP, currVLANID, instantiatedEdges, currEdgeBridge = "10.0.0.0", 2, 0, "brdE0"
 
     for clique in nx.find_cliques(logicalGraph):
 
@@ -55,14 +55,16 @@ def instantiate_net(logicalGraph, storeCliques):
         log.debug(f"Assigning addresses from subnet --> {cliqueSubnet}")
 
         for host in clique:
+            log.info(f"Adding host {host}; instantiated {instantiatedEdges} edges")
             addHost(topology, currEdgeBridge, host, cliqueSubnet, cliqueVLAN)
-            instantiatedHosts += 1
+            instantiatedEdges += 1
 
             # Linux bridges can tolerate a maximum of 1024 ports: we can use 1023 for hosts and
                 # we need a remaining one for a trunk port. We can use the following to effectively
                 # check that's the imposed limit: `echo $((( $(bridge -c vlan show | wc -l) - 1) / 2))`
-            if instantiatedHosts % 1023 == 0:
-                currEdgeBridge = f"brdE{int(instantiatedHosts / 1023)}"
+            if instantiatedEdges % 1023 == 0:
+                log.info(f"Creating a new edge switch!")
+                currEdgeBridge = f"brdE{int(instantiatedEdges / 1023)}"
                 topology.add_node(currEdgeBridge, type = "bridge", subnet = "")
                 topology.add_edge("brdC", currEdgeBridge)
                 ni._create_bridge(currEdgeBridge)
