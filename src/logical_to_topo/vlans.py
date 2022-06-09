@@ -29,7 +29,7 @@ def instantiate_net(logicalGraph, storeCliques):
     topology.add_edge("brdC", "brdE0")
     ni._create_bridge("brdE0")
     iplink.bridge.enableVLAN("brdE0")
-    _, edgeIface = ni._connect_node("brdC", "brdE0")
+    _, edgeIface = ni._connect_node("brdC", "brdE0", brdToBrd = True)
     trunkVLAN.addIface(edgeIface)
 
     nextFreeIP, currVLANID, instantiatedHosts, currEdgeBridge = "10.0.0.0", 2, 0, "brdE0"
@@ -67,7 +67,7 @@ def instantiate_net(logicalGraph, storeCliques):
                 topology.add_edge("brdC", currEdgeBridge)
                 ni._create_bridge(currEdgeBridge)
                 iplink.bridge.enableVLAN(currEdgeBridge)
-                _, edgeIface = ni._connect_node("brdC",currEdgeBridge)
+                _, edgeIface = ni._connect_node("brdC", currEdgeBridge, brdToBrd = True)
                 trunkVLAN.addIface(edgeIface)
 
         log.debug(f"Assigned addresses -> {addr_manager.assigned_addreses}")
