@@ -183,12 +183,22 @@ def _find_reachable_ip(source, gw):
         if subnet in gw_subnets:
             return gw_addresses[gw_subnets.index(subnet)].split('/')[0]
 
-def _undo_deployment(instances):
+def _undo_deployment(instances, fail = True):
     for bridge in instances['bridges']:
-        iplink.bridge.remove(bridge)
+        try:
+            iplink.bridge.remove(bridge)
+        except IP2Error as err:
+            if fail:
+                raise err
+            log.warn(f"{err}")
 
     for container in instances['containers']:
-        dx.remove_container(container)
+        try:
+            dx.remove_container(container)
+        except DckError as err:
+            if fail:
+                raise err
+            log.warn(f"{err}")
 
 def _update_hosts_files():
     hosts_file = '\n'.join(
