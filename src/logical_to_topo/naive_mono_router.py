@@ -35,7 +35,6 @@ def remove_net(logicalGraph):
     for i in range(len(logicalGraph)):
         tmp["bridges"].append(f"brd{i}")
         tmp["containers"].append(f"h{i}")
-        tmp["containers"].append(f"r{i}")
 
     log.info(f"Deleting the following instances:\n{json.dumps(tmp)}")
     ni._undo_deployment(tmp, fail = False)
