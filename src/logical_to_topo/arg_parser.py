@@ -15,7 +15,12 @@ def parse_args():
     parser = argparse.ArgumentParser(description = "Logical to Physical topology mapper")
     parser.add_argument(
         "logical_definition",
-        help = "GEXF file containing the desired network's definition."
+        help = "File containing the desired network's definition."
+    )
+    parser.add_argument(
+        "-f", "--format", default = "gexf",
+        choices = ["gexf", "edge-list"],
+        help = "The format of the provided network definition."
     )
     parser.add_argument(
         "-a", "--algorithm", default = "naive-multi-router",

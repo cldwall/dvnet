@@ -1,8 +1,7 @@
-import logging, sys
-
-import networkx as nx
+import logging
 
 from . import arg_parser
+from . import net_loading
 from . import naive_multi_router
 from . import naive_mono_router
 from . import vlans
@@ -21,6 +20,11 @@ niMap = {
     )
 }
 
+nlMap = {
+    "gexf": net_loading.loadGexf,
+    "edge-list": net_loading.loadEdgeList
+}
+
 def main():
     args = arg_parser.parse_args()
 
@@ -33,13 +37,10 @@ def main():
 
     logger.addHandler(ch)
 
-    log = logging.getLogger(__name__)
+    logicalGraph = nlMap[args.format](args.logical_definition)
 
-    try:
-        logicalGraph = nx.read_gexf(args.logical_definition)
-    except FileNotFoundError as err:
-        log.critical(f"Couldn't load the graph definition: {err.cause}")
-        sys.exit(-1)
+    if not logicalGraph:
+        return -1
 
     if args.remove:
         niMap[args.algorithm][1](logicalGraph)
