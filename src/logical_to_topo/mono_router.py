@@ -23,7 +23,7 @@ def instantiate_net(logicalGraph: nx.Graph, _, nImage, rImage, experiment = Fals
 
     for node in logicalGraph:
         if len(node) < 3:
-            node += "0" * (3 - len(node))
+            node = "0" * (3 - len(node)) + node
         addHost(topology, node, currentSubnet, nImage)
         currentSubnet = "{}/30".format(
             addr_manager.binary_to_addr(ip_utils.addr_to_binary(currentSubnet.split("/")[0]) + 4)
