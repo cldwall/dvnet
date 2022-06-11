@@ -47,9 +47,9 @@ def instantiate_net(logicalGraph: nx.Graph, _, nImage, rImage, experiment = Fals
 def remove_net(logicalGraph):
     tmp = {"bridges": ["brdIDB", "brdIDB-influxdb"], "containers": ["rCore"]}
     subprocess.run(['rm', '-f', '/var/run/netns/influxdb'])
-    for i in range(len(logicalGraph)):
-        tmp["bridges"].append(f"brd{i}")
-        tmp["containers"].append(f"h{i}")
+    for node in logicalGraph:
+        tmp["bridges"].append(f"brd{node}")
+        tmp["containers"].append(node)
 
     log.info(f"Deleting the following instances:\n{json.dumps(tmp)}")
     ni._undo_deployment(tmp, fail = False)
