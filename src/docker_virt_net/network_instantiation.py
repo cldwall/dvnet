@@ -125,8 +125,8 @@ def _create_node(name, type, img):
     existing_instances['containers'].append(name)
 
 def _connect_node(node, bridge, vID = None, brdToBrd = False, nIfaceName = None, brdIfaceName = None):
-    x = f"{node}-{bridge}{f'-{vID}' if vID else ''}" if nIfaceName != None else nIfaceName
-    y = f"{bridge}-{node}{f'-{vID}' if vID else ''}" if brdIfaceName != None else brdIfaceName
+    x = f"{node}-{bridge}{f'-{vID}' if vID else ''}" if nIfaceName == None else nIfaceName
+    y = f"{bridge}-{node}{f'-{vID}' if vID else ''}" if brdIfaceName == None else brdIfaceName
     iplink.veth.create(x, y)
     iplink.veth.connect(node, x, host = not brdToBrd)
     iplink.veth.activate(x, netns = node if not brdToBrd else None)
