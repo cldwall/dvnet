@@ -16,13 +16,13 @@ log = logging.getLogger(__name__)
 def instantiate_net(logicalGraph: nx.Graph, _, nImage, rImage, experiment = False):
     ni._system_setup()
     currentSubnet = "10.0.0.0/30"
-    topology, nNodes = nx.Graph(name = "Topology"), len(logicalGraph)
+    topology = nx.Graph(name = "Topology")
 
     topology.add_node("rCore", type = "router", internet_gw = False)
     ni._create_node("rCore", dx.types.router, rImage)
 
-    for i in range(nNodes):
-        addHost(topology, i, currentSubnet, nImage)
+    for node in logicalGraph:
+        addHost(topology, node, currentSubnet, nImage)
 
         currentSubnet = "{}/30".format(
             addr_manager.binary_to_addr(ip_utils.addr_to_binary(currentSubnet.split("/")[0]) + 4)
@@ -72,8 +72,8 @@ def dump_graph_figure(logicalGraph, name: str):
     nx.write_gexf(relabeledLogicalGraph, f"{name}_relabeled.gexf")
     net_visualization.show_net(relabeledLogicalGraph, f"{name}_relabeled")
 
-def addHost(graph, id, subnet, nImage):
-    brdName, hostName = f"brd{id}", f"h{id}"
+def addHost(graph, hostName, subnet, nImage):
+    brdName = f"brd{hostName}"
     addGraphNode(graph, brdName, hostName)
     hIface, rIfaceSubnet = addNetworkInfrastructure(brdName, hostName, nImage)
     routerSubnetIP = addNetworkAddresses(
@@ -107,11 +107,8 @@ def addHostNetworkRoutes(host, routerSubnetIP):
     iproute.assign("default", routerSubnetIP.split("/")[0], netns = host)
 
 def configureFirewalls(logicalGraph):
-    relabeledLogicalGraph = nx.relabel_nodes(logicalGraph,
-        {node: f"h{i}" for i, node in enumerate(logicalGraph.nodes())})
-
     dx.apply_fw_rules("rCore", {"POLICY": "DROP", "DROP": [], "ACCEPT": [
-            (node, neigh, True) for node in relabeledLogicalGraph for neigh in relabeledLogicalGraph.neighbors(node)
+            (node, neigh, True) for node in logicalGraph for neigh in logicalGraph.neighbors(node)
         ]})
 
 def addNeighbourMap(node, neighbours):
