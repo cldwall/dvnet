@@ -33,7 +33,9 @@ def main():
 
     ch = logging.StreamHandler()
     ch.setLevel(logging.DEBUG)
-    ch.setFormatter(coloured_log_formatter.coloured_formatter())
+
+    if not args.disable_colour:
+        ch.setFormatter(coloured_log_formatter.coloured_formatter())
 
     logger.addHandler(ch)
 
@@ -50,7 +52,7 @@ def main():
         niMap[args.algorithm][2](logicalGraph, args.logical_definition.split('/')[-1].split('.')[0])
         return
 
-    niMap[args.algorithm][0](logicalGraph, args.cliques)
+    niMap[args.algorithm][0](logicalGraph, args.cliques, args.node_image, args.router_image, args.experiment)
     return
 
 if __name__ == "__main__":

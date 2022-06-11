@@ -1,4 +1,4 @@
-import logging, json
+import logging, json, subprocess, io, tarfile
 
 import networkx as nx
 
@@ -13,16 +13,16 @@ import ip2_api.route as iproute
 
 log = logging.getLogger(__name__)
 
-def instantiate_net(logicalGraph, _):
+def instantiate_net(logicalGraph: nx.Graph, _, nImage, rImage, experiment = False):
     ni._system_setup()
     currentSubnet = "10.0.0.0/30"
     topology, nNodes = nx.Graph(name = "Topology"), len(logicalGraph)
 
     topology.add_node("rCore", type = "router", internet_gw = False)
-    ni._create_node("rCore", dx.types.router, "pcollado/d_router")
+    ni._create_node("rCore", dx.types.router, rImage)
 
     for i in range(nNodes):
-        addHost(topology, i, currentSubnet)
+        addHost(topology, i, currentSubnet, nImage)
 
         currentSubnet = "{}/30".format(
             addr_manager.binary_to_addr(ip_utils.addr_to_binary(currentSubnet.split("/")[0]) + 4)
@@ -30,8 +30,23 @@ def instantiate_net(logicalGraph, _):
 
     configureFirewalls(logicalGraph)
 
+    for node in logicalGraph:
+        addNeighbourMap(node, logicalGraph.neighbors(node))
+
+    if experiment:
+        dx.link_netns("influxdb")
+        ni._create_bridge("brdIDB")
+        hIface, _ = ni._connect_node("influxdb", "brdIDB")
+        rIface, _ = ni._connect_node("rCore", "brdIDB")
+        ipaddr.assign(hIface, "192.168.0.2/30", netns = "influxdb")
+        ipaddr.assign(rIface, "192.168.0.1/30", netns = "rCore")
+        iproute.assign("default", "192.168.0.1", netns = "influxdb")
+        dx._allow_traffic_to_ip("rCore", "192.168.0.2")
+        dx._allow_traffic_from_ip("rCore", "192.168.0.2")
+
 def remove_net(logicalGraph):
-    tmp = {"bridges": [], "containers": ["rCore"]}
+    tmp = {"bridges": ["brdIDB", "brdIDB-influxdb"], "containers": ["rCore"]}
+    subprocess.run(['rm', '-f', '/var/run/netns/influxdb'])
     for i in range(len(logicalGraph)):
         tmp["bridges"].append(f"brd{i}")
         tmp["containers"].append(f"h{i}")
@@ -57,10 +72,10 @@ def dump_graph_figure(logicalGraph, name: str):
     nx.write_gexf(relabeledLogicalGraph, f"{name}_relabeled.gexf")
     net_visualization.show_net(relabeledLogicalGraph, f"{name}_relabeled")
 
-def addHost(graph, id, subnet):
+def addHost(graph, id, subnet, nImage):
     brdName, hostName = f"brd{id}", f"h{id}"
     addGraphNode(graph, brdName, hostName)
-    hIface, rIfaceSubnet = addNetworkInfrastructure(brdName, hostName)
+    hIface, rIfaceSubnet = addNetworkInfrastructure(brdName, hostName, nImage)
     routerSubnetIP = addNetworkAddresses(
         [(subnet, hostName, hIface), (subnet, "rCore", rIfaceSubnet)]
     )
@@ -72,9 +87,9 @@ def addGraphNode(graph, bridge, host):
     graph.add_edge(bridge, host)
     graph.add_edge(bridge, "rCore")
 
-def addNetworkInfrastructure(bridge, host):
+def addNetworkInfrastructure(bridge, host, nImage):
     ni._create_bridge(bridge)
-    ni._create_node(host, dx.types.host, "pcollado/d_host")
+    ni._create_node(host, dx.types.host, nImage)
     hIface, _ = ni._connect_node(host, bridge)
     rIfaceSubnet, _ = ni._connect_node("rCore", bridge)
 
@@ -98,3 +113,20 @@ def configureFirewalls(logicalGraph):
     dx.apply_fw_rules("rCore", {"POLICY": "DROP", "DROP": [], "ACCEPT": [
             (node, neigh, True) for node in relabeledLogicalGraph for neigh in relabeledLogicalGraph.neighbors(node)
         ]})
+
+def addNeighbourMap(node, neighbours):
+    data_buff, tar_buff = io.BytesIO(json.dumps(
+        {"ourIP": addr_manager.name_2_ip(node), "neighIPs": [addr_manager.name_2_ip(neigh) for neigh in neighbours]}
+    ).encode()), io.BytesIO()
+
+    t_file = tarfile.open(mode = 'w', fileobj = tar_buff)
+    tinfo = tarfile.TarInfo()
+    tinfo.name = "neighIPs.json"
+    tinfo.size = data_buff.seek(0, io.SEEK_END)
+    data_buff.seek(0, io.SEEK_SET)
+    t_file.addfile(tinfo, data_buff)
+    t_file.close()
+    tar_buff.seek(0, io.SEEK_SET)
+    tar_data = tar_buff.read()
+
+    dx.upload_file(node, "/root", tar_data)
