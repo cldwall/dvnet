@@ -140,6 +140,18 @@ def _add_fw_rule(cont, chain, target, source, dest):
     except DckError as err:
         raise DckError(f"{err.cause} @ rule {source}-{dest}-{target}; {chain} chain; filter table")
 
+def _allow_traffic_to_ip(cont, dest):
+    try:
+        _exec(d_client.containers.get(cont), ['iptables', '-A', "FORWARD", '-j', "ACCEPT", '-d', dest])
+    except DckError as err:
+        raise DckError(f"{err.cause} @ rule anywhere-{dest}-ACCEPT; FORWARD chain; filter table")
+
+def _allow_traffic_from_ip(cont, src):
+    try:
+        _exec(d_client.containers.get(cont), ['iptables', '-A', "FORWARD", '-j', "ACCEPT", '-s', src])
+    except DckError as err:
+        raise DckError(f"{err.cause} @ rule {src}-anywhere-ACCEPT; FORWARD chain; filter table")
+
 def add_nat_rule(cont, target, dest = None):
     cont = d_client.containers.get(cont)
     args = [
