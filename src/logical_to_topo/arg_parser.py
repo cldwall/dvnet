@@ -28,6 +28,18 @@ def parse_args():
         help = "The algorithm to use for instantiating the network."
     )
     parser.add_argument(
+        "--node_image", default = "pcollado/d_host",
+        help = "The Docker image to run on hosts."
+    )
+    parser.add_argument(
+        "--router_image", default = "pcollado/d_router",
+        help = "The Docker image to run on routers."
+    )
+    parser.add_argument(
+        "-e", "--experiment", action = 'store_true',
+        help = "Instantiate additional infrastructure for running experiments."
+    )
+    parser.add_argument(
         "-r", "--remove", action = 'store_true',
         help = "Remove the instances of elements found on <net_definition>."
     )
@@ -43,6 +55,10 @@ def parse_args():
         "--log", nargs = '?', default = "info",
         choices = ["debug", "info", "warning", "error", "critical"],
         help = "Log level."
+    )
+    parser.add_argument(
+        "--disable-colours", action = 'store_true',
+        help = "Disable the use of escape sequences adding colours to logging."
     )
 
     return parser.parse_args()
