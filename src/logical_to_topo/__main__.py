@@ -34,7 +34,7 @@ def main():
     ch = logging.StreamHandler()
     ch.setLevel(logging.DEBUG)
 
-    if not args.disable_colour:
+    if not args.disable_colours:
         ch.setFormatter(coloured_log_formatter.coloured_formatter())
 
     logger.addHandler(ch)
