@@ -78,9 +78,9 @@ def instantiate_net(logicalGraph, storeCliques):
         log.debug(f"Assigned addresses -> {addr_manager.assigned_addreses}")
 
 def remove_net(logicalGraph):
-    tmp = {"bridges": ["brdC", *[f"brdE{i}" for i in range(len(logicalGraph) / 1022)]], "containers": []}
+    tmp = {"bridges": ["brdC", *[f"brdE{i}" for i in range(int(len(logicalGraph) / 1022))]], "containers": []}
     for node in logicalGraph:
-        tmp["containers"].append(node)
+        tmp["containers"].append(node if len(node) > 1 else '0' + node)
 
     log.info(f"Deleting the following instances:\n{json.dumps(tmp)}")
     ni._undo_deployment(tmp, fail = False)
