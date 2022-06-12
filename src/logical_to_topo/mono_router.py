@@ -48,6 +48,7 @@ def instantiate_net(logicalGraph: nx.Graph, _, nImage, rImage, experiment = Fals
         dx._allow_traffic_from_ip("rCore", "192.168.0.2")
 
 def remove_net(logicalGraph):
+    logicalGraph = nx.relabel_nodes(logicalGraph, {f"{i}": "0" * (3 - len(f"{i}")) + f"{i}" for i in range(100)})
     tmp = {"bridges": ["brdIDB", "brdIDB-influxdb"], "containers": ["rCore"]}
     subprocess.run(['rm', '-f', '/var/run/netns/influxdb'])
     for node in logicalGraph:
