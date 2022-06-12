@@ -21,9 +21,10 @@ def instantiate_net(logicalGraph: nx.Graph, _, nImage, rImage, experiment = Fals
     topology.add_node("rCore", type = "router", internet_gw = False)
     ni._create_node("rCore", dx.types.router, rImage)
 
+    # Pad all node names to at least 3-digit numbers
+    logicalGraph = nx.relabel_nodes(logicalGraph, {f"{i}": "0" * (3 - len(f"{i}")) + f"{i}" for i in range(100)})
+
     for node in logicalGraph:
-        if len(node) < 3:
-            node = "0" * (3 - len(node)) + node
         addHost(topology, node, currentSubnet, nImage)
         currentSubnet = "{}/30".format(
             addr_manager.binary_to_addr(ip_utils.addr_to_binary(currentSubnet.split("/")[0]) + 4)
@@ -35,6 +36,7 @@ def instantiate_net(logicalGraph: nx.Graph, _, nImage, rImage, experiment = Fals
         addNeighbourMap(node, logicalGraph.neighbors(node))
 
     if experiment:
+        log.debug("Setting up additional experiment infrastructure")
         dx.link_netns("influxdb")
         ni._create_bridge("brdIDB")
         hIface, _ = ni._connect_node("influxdb", "brdIDB")
@@ -113,6 +115,7 @@ def configureFirewalls(logicalGraph):
         ]})
 
 def addNeighbourMap(node, neighbours):
+    log.debug(f"Adding neighbour map to {node}")
     data_buff, tar_buff = io.BytesIO(json.dumps(
         {"ourIP": addr_manager.name_2_ip(node), "neighIPs": [addr_manager.name_2_ip(neigh) for neigh in neighbours]}
     ).encode()), io.BytesIO()
