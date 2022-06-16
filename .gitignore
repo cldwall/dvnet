@@ -1,0 +1,6 @@
+# Ignore hidden files except .gitignore
+.*
+!.gitignore
+
+# Ignore large nets for now
+*.csv
