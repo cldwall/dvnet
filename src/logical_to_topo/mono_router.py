@@ -1,3 +1,4 @@
+from ctypes import util
 import logging, json, subprocess, io, tarfile
 
 import networkx as nx
@@ -10,6 +11,8 @@ from docker_virt_net import net_visualization
 
 import ip2_api.addr as ipaddr
 import ip2_api.route as iproute
+
+from . import utils
 
 log = logging.getLogger(__name__)
 
@@ -24,8 +27,8 @@ def instantiate_net(logicalGraph: nx.Graph, _, nImage, rImage, experiment = Fals
     # Pad all node names to at least 3-digit numbers
     logicalGraph = nx.relabel_nodes(logicalGraph, {f"{i}": "0" * (3 - len(f"{i}")) + f"{i}" for i in range(100)})
 
-    for node in logicalGraph:
-        addHost(topology, node, currentSubnet, nImage)
+    for i, node in enumerate(logicalGraph):
+        addHost(topology, node, i * 4, currentSubnet, nImage)
         currentSubnet = "{}/30".format(
             addr_manager.binary_to_addr(ip_utils.addr_to_binary(currentSubnet.split("/")[0]) + 4)
         )
@@ -76,10 +79,10 @@ def dump_graph_figure(logicalGraph, name: str):
     nx.write_gexf(relabeledLogicalGraph, f"{name}_relabeled.gexf")
     net_visualization.show_net(relabeledLogicalGraph, f"{name}_relabeled")
 
-def addHost(graph, hostName, subnet, nImage):
+def addHost(graph, hostName, index, subnet, nImage):
     brdName = f"brd{hostName}"
     addGraphNode(graph, brdName, hostName)
-    hIface, rIfaceSubnet = addNetworkInfrastructure(brdName, hostName, nImage)
+    hIface, rIfaceSubnet = addNetworkInfrastructure(brdName, hostName, nImage, index)
     routerSubnetIP = addNetworkAddresses(
         [(subnet, hostName, hIface), (subnet, "rCore", rIfaceSubnet)]
     )
@@ -91,11 +94,17 @@ def addGraphNode(graph, bridge, host):
     graph.add_edge(bridge, host)
     graph.add_edge(bridge, "rCore")
 
-def addNetworkInfrastructure(bridge, host, nImage):
+def addNetworkInfrastructure(bridge, host, nImage, index):
     ni._create_bridge(bridge)
     ni._create_node(host, dx.types.host, nImage)
-    hIface, _ = ni._connect_node(host, bridge)
-    rIfaceSubnet, _ = ni._connect_node("rCore", bridge)
+    hIface, _ = ni._connect_node(host, bridge,
+        nIfaceName   = utils.intToString(index, alphabet = "z0123456789abcdefghijklmnopqrstuvwxy", padding = 4),
+        brdIfaceName = utils.intToString(index + 1, alphabet = "z0123456789abcdefghijklmnopqrstuvwxy", padding = 4)
+    )
+    rIfaceSubnet, _ = ni._connect_node("rCore", bridge,
+        nIfaceName   = utils.intToString(index + 2, alphabet = "z0123456789abcdefghijklmnopqrstuvwxy", padding = 4),
+        brdIfaceName = utils.intToString(index + 3, alphabet = "z0123456789abcdefghijklmnopqrstuvwxy", padding = 4)
+    )
 
     return hIface, rIfaceSubnet
 
