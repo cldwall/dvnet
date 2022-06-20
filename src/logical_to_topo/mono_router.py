@@ -30,8 +30,8 @@ def instantiate_net(logicalGraph: nx.Graph, _, nImage, rImage, experiment = Fals
     logicalGraph = nx.relabel_nodes(logicalGraph, {f"{i}": "0" * (3 - len(f"{i}")) + f"{i}" for i in range(100)})
 
     for i, hostName in enumerate(logicalGraph):
-        brdName = f"brd{node}"
-        addGraphNode(topology, brdName, node)
+        brdName = f"brd{hostName}"
+        addGraphNode(topology, brdName, hostName)
         if not skipInstantiation:
             hIface, rIfaceSubnet = addNetworkInfrastructure(brdName, hostName, nImage, i * 4, skipInstantiation)
             if hIface != None and rIfaceSubnet != None:
