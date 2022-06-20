@@ -1,5 +1,4 @@
-from ctypes import util
-import logging, json, subprocess, io, tarfile
+import logging, json, subprocess, io, tarfile, requests, time
 
 import networkx as nx
 
@@ -119,6 +118,10 @@ def addNetworkInfrastructure(bridge, host, nImage, index):
     except IP2Error as err:
         log.warn(f"Error creating network infrastructure: {err.cause}")
         return None, None
+    except requests.exceptions.Timeout as err:
+        log.warn(f"The docker client timed out: {err.cause}. Calling addNetworkInfrastructure() recursively!")
+        time.sleep(5)
+        return addNetworkInfrastructure(bridge, host, nImage, index)
     return hIface, rIfaceSubnet
 
 def addNetworkAddresses(addressingInfo):
