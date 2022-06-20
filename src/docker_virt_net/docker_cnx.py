@@ -31,7 +31,7 @@ dns_resolvers = [
     "1.1.1.1", "8.8.8.8"
 ]
 
-d_client = docker.from_env()
+d_client = docker.from_env(timeout = 180)
 
 def get_default_net_data():
     for net in d_client.networks.list():

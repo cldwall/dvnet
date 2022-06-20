@@ -118,8 +118,8 @@ def addNetworkInfrastructure(bridge, host, nImage, index):
     except IP2Error as err:
         log.warn(f"Error creating network infrastructure: {err.cause}")
         return None, None
-    except requests.exceptions.Timeout as err:
-        log.warn(f"The docker client timed out: {err.cause}. Calling addNetworkInfrastructure() recursively!")
+    except requests.exceptions.Timeout:
+        log.warn(f"The docker client timed out. Calling addNetworkInfrastructure() recursively!")
         time.sleep(5)
         return addNetworkInfrastructure(bridge, host, nImage, index)
     return hIface, rIfaceSubnet
