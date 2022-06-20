@@ -1,4 +1,4 @@
-import docker, subprocess, logging
+import docker, subprocess, logging, time
 
 # Supress urrlib3's log output below the WARNING level
 logging.getLogger("urllib3").setLevel(logging.WARNING)
@@ -64,6 +64,9 @@ def run_container(name, type, img):
     except docker.errors.ImageNotFound:
         raise DckError(f"Image '{img}' for L3 device {name} couldn't be found")
     except docker.errors.APIError as err:
+        # We might've hit a timeout!
+        time.Sleep(5)
+        d_client.containers.get(name).start()
         raise DckError(f"Docker engine error - {err.explanation}")
 
 def remove_container(name):

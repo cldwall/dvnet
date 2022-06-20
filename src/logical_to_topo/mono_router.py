@@ -8,15 +8,17 @@ from docker_virt_net import network_instantiation as ni
 from docker_virt_net import docker_cnx as dx
 from docker_virt_net import ip_utils
 from docker_virt_net import net_visualization
+from docker_virt_net.exceptions import DckError
 
 import ip2_api.addr as ipaddr
+from ip2_api.exceptions import IP2Error
 import ip2_api.route as iproute
 
 from . import utils
 
 log = logging.getLogger(__name__)
 
-def instantiate_net(logicalGraph: nx.Graph, _, nImage, rImage, experiment = False):
+def instantiate_net(logicalGraph: nx.Graph, _, nImage, rImage, experiment = False, skipInstantiation = False):
     ni._system_setup()
     currentSubnet = "10.0.0.0/30"
     topology = nx.Graph(name = "Topology")
@@ -27,8 +29,21 @@ def instantiate_net(logicalGraph: nx.Graph, _, nImage, rImage, experiment = Fals
     # Pad all node names to at least 3-digit numbers
     logicalGraph = nx.relabel_nodes(logicalGraph, {f"{i}": "0" * (3 - len(f"{i}")) + f"{i}" for i in range(100)})
 
-    for i, node in enumerate(logicalGraph):
-        addHost(topology, node, i * 4, currentSubnet, nImage)
+    for i, hostName in enumerate(logicalGraph):
+        brdName = f"brd{node}"
+        addGraphNode(topology, brdName, node)
+        if not skipInstantiation:
+            hIface, rIfaceSubnet = addNetworkInfrastructure(brdName, hostName, nImage, i * 4, skipInstantiation)
+            if hIface != None and rIfaceSubnet != None:
+                routerSubnetIP = addNetworkAddresses(
+                    [(currentSubnet, hostName, hIface), (currentSubnet, "rCore", rIfaceSubnet)], skipInstantiation
+                )
+                addHostNetworkRoutes(hostName, routerSubnetIP, skipInstantiation)
+        else:
+            # Force address allocation
+            addr_manager.request_ip(currentSubnet, hname = hostName)
+            addr_manager.request_ip(currentSubnet, hname = "rCore")
+
         currentSubnet = "{}/30".format(
             addr_manager.binary_to_addr(ip_utils.addr_to_binary(currentSubnet.split("/")[0]) + 4)
         )
@@ -36,7 +51,10 @@ def instantiate_net(logicalGraph: nx.Graph, _, nImage, rImage, experiment = Fals
     configureFirewalls(logicalGraph)
 
     for node in logicalGraph:
-        addNeighbourMap(node, logicalGraph.neighbors(node))
+        if isinstance(logicalGraph, nx.DiGraph):
+            addNeighbourMap(node, [e[1] for e in logicalGraph.out_edges(node)])
+        else:
+            addNeighbourMap(node, logicalGraph.neighbors(node))
 
     if experiment:
         log.debug("Setting up additional experiment infrastructure")
@@ -79,15 +97,6 @@ def dump_graph_figure(logicalGraph, name: str):
     nx.write_gexf(relabeledLogicalGraph, f"{name}_relabeled.gexf")
     net_visualization.show_net(relabeledLogicalGraph, f"{name}_relabeled")
 
-def addHost(graph, hostName, index, subnet, nImage):
-    brdName = f"brd{hostName}"
-    addGraphNode(graph, brdName, hostName)
-    hIface, rIfaceSubnet = addNetworkInfrastructure(brdName, hostName, nImage, index)
-    routerSubnetIP = addNetworkAddresses(
-        [(subnet, hostName, hIface), (subnet, "rCore", rIfaceSubnet)]
-    )
-    addHostNetworkRoutes(hostName, routerSubnetIP)
-
 def addGraphNode(graph, bridge, host):
     graph.add_node(bridge, type = "bridge", subnet = "")
     graph.add_node(host, type = "host")
@@ -95,17 +104,23 @@ def addGraphNode(graph, bridge, host):
     graph.add_edge(bridge, "rCore")
 
 def addNetworkInfrastructure(bridge, host, nImage, index):
-    ni._create_bridge(bridge)
-    ni._create_node(host, dx.types.host, nImage)
-    hIface, _ = ni._connect_node(host, bridge,
-        nIfaceName   = utils.intToString(index, alphabet = "z0123456789abcdefghijklmnopqrstuvwxy", padding = 4),
-        brdIfaceName = utils.intToString(index + 1, alphabet = "z0123456789abcdefghijklmnopqrstuvwxy", padding = 4)
-    )
-    rIfaceSubnet, _ = ni._connect_node("rCore", bridge,
-        nIfaceName   = utils.intToString(index + 2, alphabet = "z0123456789abcdefghijklmnopqrstuvwxy", padding = 4),
-        brdIfaceName = utils.intToString(index + 3, alphabet = "z0123456789abcdefghijklmnopqrstuvwxy", padding = 4)
-    )
-
+    try:
+        ni._create_bridge(bridge)
+        ni._create_node(host, dx.types.host, nImage)
+        hIface, _ = ni._connect_node(host, bridge,
+            nIfaceName   = utils.intToString(index, alphabet = "z0123456789abcdefghijklmnopqrstuvwxy", padding = 4),
+            brdIfaceName = utils.intToString(index + 1, alphabet = "z0123456789abcdefghijklmnopqrstuvwxy", padding = 4)
+        )
+        rIfaceSubnet, _ = ni._connect_node("rCore", bridge,
+            nIfaceName   = utils.intToString(index + 2, alphabet = "z0123456789abcdefghijklmnopqrstuvwxy", padding = 4),
+            brdIfaceName = utils.intToString(index + 3, alphabet = "z0123456789abcdefghijklmnopqrstuvwxy", padding = 4)
+        )
+    except DckError as err:
+        log.warn(f"Error creating host {host}: {err.cause}")
+        return None, None
+    except IP2Error as err:
+        log.warn(f"Error creating network infrastructure: {err.cause}")
+        return None, None
     return hIface, rIfaceSubnet
 
 def addNetworkAddresses(addressingInfo):

@@ -39,7 +39,7 @@ def main():
 
     logger.addHandler(ch)
 
-    logicalGraph = nlMap[args.format](args.logical_definition)
+    logicalGraph = nlMap[args.format](args.logical_definition, args.directed)
 
     if not logicalGraph:
         return -1
@@ -52,7 +52,8 @@ def main():
         niMap[args.algorithm][2](logicalGraph, args.logical_definition.split('/')[-1].split('.')[0])
         return
 
-    niMap[args.algorithm][0](logicalGraph, args.cliques, args.node_image, args.router_image, args.experiment)
+    niMap[args.algorithm][0](logicalGraph,
+        args.cliques, args.node_image, args.router_image, args.experiment, args.skip_instantiation)
     return
 
 if __name__ == "__main__":

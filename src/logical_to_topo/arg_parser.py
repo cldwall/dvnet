@@ -52,6 +52,14 @@ def parse_args():
         help = "Dump discovered cliques. This is only applicable for the `vlans` algorithm."
     )
     parser.add_argument(
+        "--directed", action = "store_true",
+        help = "Whether to treat the loaded graph as a Directed Graph."
+    )
+    parser.add_argument(
+        "--skip-instantiation", action = "store_true",
+        help = "Skip container and network infrastructure instantiation."
+    )
+    parser.add_argument(
         "--log", nargs = '?', default = "info",
         choices = ["debug", "info", "warning", "error", "critical"],
         help = "Log level."
