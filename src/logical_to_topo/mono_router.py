@@ -33,12 +33,10 @@ def instantiate_net(logicalGraph: nx.Graph, _, nImage, rImage, experiment = Fals
         brdName = f"brd{hostName}"
         addGraphNode(topology, brdName, hostName)
         if not skipInstantiation:
-            hIface, rIfaceSubnet = addNetworkInfrastructure(brdName, hostName, nImage, i * 4, skipInstantiation)
+            hIface, rIfaceSubnet = addNetworkInfrastructure(brdName, hostName, nImage, i * 4)
             if hIface != None and rIfaceSubnet != None:
-                routerSubnetIP = addNetworkAddresses(
-                    [(currentSubnet, hostName, hIface), (currentSubnet, "rCore", rIfaceSubnet)], skipInstantiation
-                )
-                addHostNetworkRoutes(hostName, routerSubnetIP, skipInstantiation)
+                routerSubnetIP = addNetworkAddresses([(currentSubnet, hostName, hIface), (currentSubnet, "rCore", rIfaceSubnet)])
+                addHostNetworkRoutes(hostName, routerSubnetIP)
         else:
             # Force address allocation
             addr_manager.request_ip(currentSubnet, hname = hostName)
