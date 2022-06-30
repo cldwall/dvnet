@@ -65,7 +65,7 @@ def run_container(name, type, img):
         raise DckError(f"Image '{img}' for L3 device {name} couldn't be found")
     except docker.errors.APIError as err:
         # We might've hit a timeout!
-        time.Sleep(5)
+        time.sleep(5)
         d_client.containers.get(name).start()
         raise DckError(f"Docker engine error - {err.explanation}")
 
