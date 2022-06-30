@@ -60,6 +60,14 @@ def parse_args():
         help = "Skip container and network infrastructure instantiation."
     )
     parser.add_argument(
+        "--skip-firewall", action = "store_true",
+        help = "Skip firewall rule instantiation."
+    )
+    parser.add_argument(
+        "--skip-map-upload", action = "store_true",
+        help = "Skip uploading the neighbour map to the nodes."
+    )
+    parser.add_argument(
         "--log", nargs = '?', default = "info",
         choices = ["debug", "info", "warning", "error", "critical"],
         help = "Log level."

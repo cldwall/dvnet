@@ -1,4 +1,5 @@
 import logging, json, subprocess, io, tarfile, requests, time
+import pathlib
 
 import networkx as nx
 
@@ -17,13 +18,18 @@ from . import utils
 
 log = logging.getLogger(__name__)
 
-def instantiate_net(logicalGraph: nx.Graph, _, nImage, rImage, experiment = False, skipInstantiation = False):
-    ni._system_setup()
+def instantiate_net(logicalGraph: nx.Graph, _, nImage, rImage, experiment = False,
+    skipInstantiation = False, skipFirewall = False, skipMapUpload = False):
+    if not skipInstantiation:
+        ni._system_setup()
+
     currentSubnet = "10.0.0.0/30"
     topology = nx.Graph(name = "Topology")
 
     topology.add_node("rCore", type = "router", internet_gw = False)
-    ni._create_node("rCore", dx.types.router, rImage)
+
+    if not skipInstantiation:
+        ni._create_node("rCore", dx.types.router, rImage)
 
     # Pad all node names to at least 3-digit numbers
     logicalGraph = nx.relabel_nodes(logicalGraph, {f"{i}": "0" * (3 - len(f"{i}")) + f"{i}" for i in range(100)})
@@ -45,15 +51,22 @@ def instantiate_net(logicalGraph: nx.Graph, _, nImage, rImage, experiment = Fals
             addr_manager.binary_to_addr(ip_utils.addr_to_binary(currentSubnet.split("/")[0]) + 4)
         )
 
-    configureFirewalls(logicalGraph)
+    if not skipFirewall:
+        configureFirewalls(logicalGraph)
 
     for node in logicalGraph:
         if isinstance(logicalGraph, nx.DiGraph):
-            addNeighbourMap(node, [e[1] for e in logicalGraph.out_edges(node)])
+            neighbourMap = genNeighbourMap(node, [e[1] for e in logicalGraph.out_edges(node)])
         else:
-            addNeighbourMap(node, logicalGraph.neighbors(node))
+            neighbourMap = genNeighbourMap(node, logicalGraph.neighbors(node))
 
-    if experiment:
+        if not skipMapUpload:
+            uploadNeighbourMap(node, neighbourMap)
+        else:
+            log.debug(f"Writing {node}'s neighbour map to {pathlib.Path(f'/tmp/{node}NeighMap.json').as_posix()}")
+            pathlib.Path(f"/tmp/{node}NeighMap.json").write_text(json.dumps(neighbourMap))
+
+    if experiment and not skipInstantiation:
         log.debug("Setting up additional experiment infrastructure")
         dx.link_netns("influxdb")
         ni._create_bridge("brdIDB")
@@ -140,11 +153,12 @@ def configureFirewalls(logicalGraph):
             (node, neigh, True) for node in logicalGraph for neigh in logicalGraph.neighbors(node)
         ]})
 
-def addNeighbourMap(node, neighbours):
+def genNeighbourMap(node, neighbours):
+    return {"ourIP": addr_manager.name_2_ip(node), "neighIPs": [addr_manager.name_2_ip(neigh) for neigh in neighbours]}
+
+def uploadNeighbourMap(node, neighbourMap):
     log.debug(f"Adding neighbour map to {node}")
-    data_buff, tar_buff = io.BytesIO(json.dumps(
-        {"ourIP": addr_manager.name_2_ip(node), "neighIPs": [addr_manager.name_2_ip(neigh) for neigh in neighbours]}
-    ).encode()), io.BytesIO()
+    data_buff, tar_buff = io.BytesIO(json.dumps(neighbourMap).encode()), io.BytesIO()
 
     t_file = tarfile.open(mode = 'w', fileobj = tar_buff)
     tinfo = tarfile.TarInfo()

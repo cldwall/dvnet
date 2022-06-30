@@ -53,7 +53,8 @@ def main():
         return
 
     niMap[args.algorithm][0](logicalGraph,
-        args.cliques, args.node_image, args.router_image, args.experiment, args.skip_instantiation)
+        args.cliques, args.node_image, args.router_image, args.experiment,
+        args.skip_instantiation, args.skip_firewall, args.skip_map_upload)
     return
 
 if __name__ == "__main__":
