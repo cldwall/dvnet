@@ -2,5 +2,12 @@
 .*
 !.gitignore
 
+# Ignore Python virtual environments
+*env/
+
 # Ignore large nets for now
 *.csv
+
+# Ignore Python bytecode
+__pycache__/
+*.pyc
